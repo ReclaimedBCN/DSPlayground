@@ -23,6 +23,15 @@ struct DSPModule
 };
 
 // -----------------------------------------------------------------------------
+// Globals
+// -----------------------------------------------------------------------------
+
+DSPModule dsp{}; // global DSPModule object for filling with hot loaded DSPState pointers
+std::string dspPath = "plugins/libdsp.dylib"; // the shared library file to load
+std::atomic<bool> reloading = 0; // flag to prevent double reloads
+static_assert (std::atomic<int>::is_always_lock_free); // ensure atomic type is lock free
+
+// -----------------------------------------------------------------------------
 // Load / Reload the DSP shared library (.so) and update the DSPModule struct
 // -----------------------------------------------------------------------------
 bool loadDSP(DSPModule& dsp, const std::string& path) 
@@ -87,18 +96,26 @@ int callback(void* outputBuffer, void*, unsigned int nFrames, double, RtAudioStr
     return 0; // return 0 so RtAudio continues streaming
 }
 
+// -------------------------------------------------------------------------
+// Multi-thread function for reloading DSP code
+    // Function gets called whenver dsp.cpp file is changed
+// -------------------------------------------------------------------------
+void atomicThread()
+{
+    // rebuild dynamic library
+    system("make -C build dsp");
+    // reload DSP
+    loadDSP(dsp, dspPath);
+    // re-enable hot-reloading
+    reloading = 0;
+}
+
 // -----------------------------------------------------------------------------
-// Main entry point
+// Entry point
 // -----------------------------------------------------------------------------
 
 int main() 
 {
-    std::string dspPath = "plugins/libdsp.dylib"; // the shared library file to load
-    auto lastWrite = std::filesystem::last_write_time(dspPath);
-
-    // create a DSPModule object for filling with hot loaded DSPState pointers
-    DSPModule dsp{};
-
     // Initial load. Fill DSPModule's placeholders with DSPState data from dsp.cpp
     if (!loadDSP(dsp, dspPath)) 
     {
@@ -163,17 +180,32 @@ int main()
     // -------------------------------------------------------------------------
     // Main loop: Check for DSP file changes
     // -------------------------------------------------------------------------
+    int firstTime = 0;
+
     while (true) 
     {
-        // periodically check if DSP shared library file changed
+        // periodically check if dsp.cpp file changed
             // if so, reload in place without restarting program
-        auto newTime = std::filesystem::last_write_time(dspPath);
-        if (newTime != lastWrite) 
+
+        std::filesystem::file_time_type lastWriteTime;
+
+        auto currentTime = std::filesystem::last_write_time("dsp.cpp");
+        
+        // don't trigger rebuild on firstLoop
+        if (!firstTime) 
         {
-            lastWrite = newTime;
-            loadDSP(dsp, dspPath);
+            lastWriteTime = currentTime;
+            firstTime = 1;
         }
 
+        // start a new thread when file edited & not currently reloading
+        if (currentTime != lastWriteTime && !reloading)
+        {
+            reloading = 1; // prevent double reloads
+            std::thread reload (atomicThread);
+            // don't block main thread whilst reloading
+            reload.detach();
+        }
         // Check every 100 ms
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
