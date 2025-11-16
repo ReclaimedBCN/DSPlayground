@@ -69,6 +69,24 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
     return true;
 }
 
+// -------------------------------------------------------------------------
+// Define RtAudio callback function
+    // Function gets called by RtAudio whenever it needs more audio samples.
+// -------------------------------------------------------------------------
+int callback(void* outputBuffer, void*, unsigned int nFrames, double, RtAudioStreamStatus, void* userData)
+{
+    // userData is a pointer passed when opening stream in try block below
+    // cast userData pointer back to a DSPModule object pointer
+    DSPModule* dsp = static_cast<DSPModule*>(userData);
+
+    // If the DSP is loaded and valid, generate samples via processAudio function in dsp.cpp
+    if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outputBuffer), nFrames);
+    // Otherwise, output silence (avoid noise on error)
+    else std::fill_n(static_cast<float*>(outputBuffer), nFrames, 0.0f);
+
+    return 0; // return 0 so RtAudio continues streaming
+}
+
 // -----------------------------------------------------------------------------
 // Main entry point
 // -----------------------------------------------------------------------------
@@ -106,24 +124,6 @@ int main()
 
     unsigned int sampleRate = 48000; // must match DSPState.sampleRate
     unsigned int bufferFrames = 256; // number of frames per audio callback
-
-    // -------------------------------------------------------------------------
-    // Define the RtAudio callback function
-    // Function gets called by RtAudio whenever it needs more audio samples.
-    // -------------------------------------------------------------------------
-    auto callback = [](void* outputBuffer, void*, unsigned int nFrames,
-                       double, RtAudioStreamStatus, void* userData) -> int {
-        // userData is a pointer passed when opening stream in try block below
-            // cast userData pointer back to a DSPModule object pointer
-        DSPModule* dsp = static_cast<DSPModule*>(userData);
-
-        // If the DSP is loaded and valid, generate samples.
-        if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outputBuffer), nFrames);
-        // Otherwise, output silence (avoid noise on error)
-        else std::fill_n(static_cast<float*>(outputBuffer), nFrames, 0.0f);
-
-        return 0; // return 0 so RtAudio continues streaming
-    };
 
     // -------------------------------
     // Open and start the audio stream
