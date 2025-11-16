@@ -173,8 +173,8 @@ int main()
             loadDSP(dsp, dspPath);
         }
 
-        // Check every 500 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // Check every 50 ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     // Safety clean up (usually unreachable)
