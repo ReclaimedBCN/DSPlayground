@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dynamicLoadTest)
+project(dspPlayground)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,11 +15,11 @@ include_directories(${CMAKE_SOURCE_DIR}/includes)
 # -----------------------
 # Host executable
 # -----------------------
-add_executable(dynamicLoadTest host.cpp)
+add_executable(dspPlayground host.cpp)
 
 find_library(RTAUDIO_LIBRARY rtaudio)
 
-target_link_libraries(dynamicLoadTest
+target_link_libraries(dspPlayground
     ${RTAUDIO_LIBRARY}
     "-framework CoreAudio"
     "-framework CoreFoundation"
