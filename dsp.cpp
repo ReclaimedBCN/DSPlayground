@@ -1,7 +1,7 @@
-/*
-Hot-Reloadable DSP Code
-    Rebuild with command: make dsp
-*/
+// -------------------------------
+// Hot-Reloadable DSP Code
+    // Rebuild with command: make dsp
+// -------------------------------
 
 #include <cmath>            // for sinf() and M_PI
 
@@ -31,22 +31,22 @@ extern "C" void destroyDSP(void* state) {
     // Called once per audio block by the host
 extern "C" void processAudio(void* state, float* out, int numFrames) {
     // Cast the untyped void* back into a DSPState typed pointer
-    auto* s = static_cast<DSPState*>(state);
+    auto* wave = static_cast<DSPState*>(state);
 
     // Calculate how much the phase should advance per sample
         // 2π * frequency / sampleRate = radians per sample
     float twoPi = 2.0f * M_PI;
-    float phaseInc = twoPi * s->freq / s->sampleRate;
+    float phaseInc = twoPi * wave->freq / wave->sampleRate;
 
     // Generate block of audio samples
     for (int i = 0; i < numFrames; ++i) 
     {
         // Sine wave oscillator @ amplitude 0.2
-        out[i] = 0.2f * sinf(s->phase);
+        out[i] = 0.2f * sinf(wave->phase);
 
         // Advance phase for next sample
-        s->phase += phaseInc;
+        wave->phase += phaseInc;
         // Wrap around if phase exceeds 2π
-        if (s->phase > twoPi) s->phase -= twoPi;
+        if (wave->phase > twoPi) wave->phase -= twoPi;
     }
 }

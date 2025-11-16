@@ -1,7 +1,7 @@
-/*
-RtAudio Host with DSP Hot-Reload:
-audio setup, dynamic loading, reloading loop, and cleanup
-*/
+// -----------------------------------------------------------------------------
+// RtAudio Host with DSP Hot-Reload:
+    // flow: inital load, audio setup, dynamic reload loop, cleanup
+// -----------------------------------------------------------------------------
 
 #include <iostream>
 #include <thread>
@@ -72,6 +72,7 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
 // -----------------------------------------------------------------------------
 // Main entry point
 // -----------------------------------------------------------------------------
+
 int main() 
 {
     std::string dspPath = "plugins/libdsp.dylib"; // the shared library file to load
@@ -90,7 +91,7 @@ int main()
     // -------------------------------
     // Setup RtAudio output stream
     // -------------------------------
-    RtAudio dac; // RtAudio output instance
+    RtAudio dac; // RtAudio output DAC object for interfacing with sound card
 
     if (dac.getDeviceCount() < 1) 
     {
@@ -138,21 +139,21 @@ int main()
                        &dsp);           // userData (passed to callback)
         dac.startStream();
     }
-    catch (RtAudioErrorType& e) 
+    catch (RtAudioErrorType& errCode)
     {
         std::cout << dac.getErrorText() << std::endl;
-        if (e == 0) std::cout << "No error" << std::endl;
-        else if (e == 1) std::cout << "Non-critical error" << std::endl;
-        else if (e == 2) std::cout << "UNspecified error type" << std::endl;
-        else if (e == 3) std::cout << "No devices found" << std::endl;
-        else if (e == 4) std::cout << "Invalid device ID was specified" << std::endl;
-        else if (e == 5) std::cout << "Device in use was disconnected" << std::endl;
-        else if (e == 6) std::cout << "Error occurred during memeory allocation" << std::endl;
-        else if (e == 7) std::cout << "Invalid parameter was specified to a fucntion" << std::endl;
-        else if (e == 8) std::cout << "Function was called incoorectly" << std::endl;
-        else if (e == 9) std::cout << "System driver error occurred" << std::endl;
-        else if (e == 10) std::cout << "System error occurred" << std::endl;
-        else if (e == 11) std::cout << "Thread error ocurred" << std::endl;
+        if (errCode == 0) std::cout << "No error" << std::endl;
+        else if (errCode == 1) std::cout << "Non-critical error" << std::endl;
+        else if (errCode == 2) std::cout << "UNspecified error type" << std::endl;
+        else if (errCode == 3) std::cout << "No devices found" << std::endl;
+        else if (errCode == 4) std::cout << "Invalid device ID was specified" << std::endl;
+        else if (errCode == 5) std::cout << "Device in use was disconnected" << std::endl;
+        else if (errCode == 6) std::cout << "Error occurred during memeory allocation" << std::endl;
+        else if (errCode == 7) std::cout << "Invalid parameter was specified to a fucntion" << std::endl;
+        else if (errCode == 8) std::cout << "Function was called incoorectly" << std::endl;
+        else if (errCode == 9) std::cout << "System driver error occurred" << std::endl;
+        else if (errCode == 10) std::cout << "System error occurred" << std::endl;
+        else if (errCode == 11) std::cout << "Thread error ocurred" << std::endl;
         return 1;
     }
 
@@ -160,7 +161,7 @@ int main()
               << "Edit and rebuild dsp.cpp to hear changes live.\n";
 
     // -------------------------------------------------------------------------
-    // Main loop: Check for DSP edits
+    // Main loop: Check for DSP file changes
     // -------------------------------------------------------------------------
     while (true) 
     {
@@ -173,8 +174,8 @@ int main()
             loadDSP(dsp, dspPath);
         }
 
-        // Check every 50 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // Check every 100 ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     // Safety clean up (usually unreachable)
