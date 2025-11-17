@@ -27,12 +27,12 @@ struct DSPModule
 // -----------------------------------------------------------------------------
 
 DSPModule dsp{}; // global DSPModule object for filling with hot loaded DSPState pointers
-std::string dspPath = "plugins/libdsp.dylib"; // the shared library file to load
+std::string dspPath = "build/plugins/libdsp.dylib"; // the shared library file to load
 std::atomic<bool> reloading = 0; // flag to prevent double reloads
 static_assert (std::atomic<int>::is_always_lock_free); // ensure atomic type is lock free
 
 // -----------------------------------------------------------------------------
-// Load / Reload the DSP shared library (.so) and update the DSPModule struct
+// Load / Reload the DSP shared library (.dylib) and update the DSPModule struct
 // -----------------------------------------------------------------------------
 bool loadDSP(DSPModule& dsp, const std::string& path) 
 {
@@ -74,7 +74,7 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
     dsp.process = processFn;
     dsp.state   = newState;
 
-    std::cout << "DSP reloaded successfully.\n";
+    std::cout << "DSP reloaded successfully\n";
     return true;
 }
 
@@ -174,21 +174,19 @@ int main()
         return 1;
     }
 
-    std::cout << "Audio stream running.\n"
-              << "Edit and rebuild dsp.cpp to hear changes live.\n";
+    std::cout << "Audio stream running\n" << "Edit dsp.cpp to hear changes live\n";
 
     // -------------------------------------------------------------------------
     // Main loop: Check for DSP file changes
     // -------------------------------------------------------------------------
+    // init / declare variables
     int firstTime = 0;
+    std::filesystem::file_time_type lastWriteTime;
 
     while (true) 
     {
         // periodically check if dsp.cpp file changed
             // if so, reload in place without restarting program
-
-        std::filesystem::file_time_type lastWriteTime;
-
         auto currentTime = std::filesystem::last_write_time("dsp.cpp");
         
         // don't trigger rebuild on firstLoop
@@ -199,15 +197,19 @@ int main()
         }
 
         // start a new thread when file edited & not currently reloading
-        if (currentTime != lastWriteTime && !reloading)
+        if ((currentTime != lastWriteTime) && !reloading)
         {
-            reloading = 1; // prevent double reloads
+            // prevent double reloads
+            reloading = 1;
+            lastWriteTime = currentTime;
+
+            std::cout << "RELOADING DSP" << std::endl;
             std::thread reload (atomicThread);
             // don't block main thread whilst reloading
             reload.detach();
         }
         // Check every 100 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
     // Safety clean up (usually unreachable)
