@@ -9,6 +9,7 @@
 #include <chrono>
 #include <dlfcn.h>         // for dlopen, dlsym, dlclose
 #include "RtAudio.h"       // RtAudio for cross-platform audio I/O
+#include "dsp.h"           // Shared class for DSP parameters
 
 // -----------------------------------------------------------------------------
 // Struct to hold function pointers and state for hot loaded data from dsp.cpp
@@ -29,7 +30,7 @@ struct DSPModule
 DSPModule dsp{}; // global DSPModule object for filling with hot loaded DSPState pointers
 std::string dspPath = "build/plugins/libdsp.dylib"; // the shared library file to load
 std::atomic<bool> reloading = 0; // flag to prevent double reloads
-static_assert (std::atomic<int>::is_always_lock_free); // ensure atomic type is lock free
+static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
 // -----------------------------------------------------------------------------
 // Load / Reload the DSP shared library (.dylib) and update the DSPModule struct
@@ -38,7 +39,7 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
 {
     // Try to open the shared library file
     void* handle = dlopen(path.c_str(), RTLD_NOW);
-        // null pointer catch
+    // null pointer catch
     if (!handle) 
     {
         std::cerr << "Failed to load DSP: " << dlerror() << "\n";
@@ -69,10 +70,10 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
 
     // Store the new handles and function pointers.
     dsp.handle  = handle;
+    dsp.state   = newState;
     dsp.create  = createFn;
     dsp.destroy = destroyFn;
     dsp.process = processFn;
-    dsp.state   = newState;
 
     std::cout << "DSP reloaded successfully\n";
     return true;
@@ -97,17 +98,68 @@ int callback(void* outputBuffer, void*, unsigned int nFrames, double, RtAudioStr
 }
 
 // -------------------------------------------------------------------------
-// Multi-thread function for reloading DSP code
+// Threaded function for reloading DSP code
     // Function gets called whenver dsp.cpp file is changed
 // -------------------------------------------------------------------------
-void atomicThread()
+void reloadDspThread()
 {
     // rebuild dynamic library
     system("make -C build dsp");
     // reload DSP
     loadDSP(dsp, dspPath);
     // re-enable hot-reloading
-    reloading = 0;
+    reloading.store(0);
+}
+
+// -------------------------------------------------------------------------
+// Threaded function for realtime parameter updates
+// -------------------------------------------------------------------------
+void replThread()
+{
+    // cast pointer to DSPState object from dsp.cpp to a DSPState object
+    DSPState* params = static_cast<DSPState*>(dsp.state);
+
+    std::string param;
+    float value;
+    std::cout << "REPL ready. Try commands like: <parameter> <value>" << std::endl;
+
+    // start REPL loop
+    while (true)
+    {
+        // assign user input
+        std::cout << "> ";
+        std::cin >> param >> value;
+
+        // User closed stdin (Ctrl-D)
+        if (!std::cin) break;
+
+        if (param == "phase") 
+        {
+            params->phase.store(value);
+            std::cout << "phase set to " << value << "\n";
+        }
+        else if (param == "freq") 
+        {
+            params->freq.store(value);
+            std::cout << "freq set to " << value << "\n";
+        }
+        else if (param == "gain") 
+        {
+            params->gain.store(value);
+            std::cout << "gain set to " << value << "\n";
+        }
+        else if (param == "bypass") 
+        {
+            params->bypass.store(value != 0);
+            std::cout << "bypass set to " << (value != 0) << "\n";
+        }
+        else if (param == "sampleRate") 
+        {
+            params->sampleRate.store(static_cast<int>(value));
+            std::cout << "sampleRate set to " << value << "\n";
+        }
+        else std::cout << "unknown parameter\n";
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -119,7 +171,7 @@ int main()
     // Initial load. Fill DSPModule's placeholders with DSPState data from dsp.cpp
     if (!loadDSP(dsp, dspPath)) 
     {
-        std::cerr << "Failed initial DSP load.\n";
+        std::cerr << "Failed initial DSP load\n";
         return 1;
     }
 
@@ -135,9 +187,9 @@ int main()
     }
 
     // Configure output stream parameters
-    RtAudio::StreamParameters params;
-    params.deviceId = dac.getDefaultOutputDevice(); // choose default output
-    params.nChannels = 1;                           // mono output
+    RtAudio::StreamParameters streamParams;
+    streamParams.deviceId = dac.getDefaultOutputDevice(); // choose default output
+    streamParams.nChannels = 1;                           // mono output
 
     unsigned int sampleRate = 48000; // must match DSPState.sampleRate
     unsigned int bufferFrames = 256; // number of frames per audio callback
@@ -147,7 +199,7 @@ int main()
     // -------------------------------
     try
     {
-        dac.openStream(&params,         // output stream parameters
+        dac.openStream(&streamParams,         // output stream parameters
                        nullptr,         // no input stream
                        RTAUDIO_FLOAT32, // sample format
                        sampleRate,
@@ -177,11 +229,15 @@ int main()
     std::cout << "Audio stream running\n" << "Edit dsp.cpp to hear changes live\n";
 
     // -------------------------------------------------------------------------
-    // Main loop: Check for DSP file changes
+    // Main loop: Start REPL thread, check for DSP file changes
     // -------------------------------------------------------------------------
     // init / declare variables
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
+
+    // start REPL in background
+    std::thread repl(replThread);
+    repl.detach(); // run independently
 
     while (true) 
     {
@@ -197,14 +253,14 @@ int main()
         }
 
         // start a new thread when file edited & not currently reloading
-        if ((currentTime != lastWriteTime) && !reloading)
+        if ((currentTime != lastWriteTime) && !reloading.load())
         {
             // prevent double reloads
-            reloading = 1;
+            reloading.store(1);
             lastWriteTime = currentTime;
 
             std::cout << "RELOADING DSP" << std::endl;
-            std::thread reload (atomicThread);
+            std::thread reload(reloadDspThread);
             // don't block main thread whilst reloading
             reload.detach();
         }
