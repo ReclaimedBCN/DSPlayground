@@ -29,13 +29,14 @@ struct DSPModule
 unsigned int sampleRate = 48000; // must match DSPState.sampleRate
 unsigned int bufferFrames = 256; // number of frames per audio callback
 unsigned int recordDuration = 2; // number of seconds to record
-unsigned int recordBuffers = sampleRate * recordDuration / bufferFrames; // approx number of buffers needed for record length
+unsigned int recordFrames = sampleRate * recordDuration;
+unsigned int writeHead = 0; // circular buffer write head
+std::vector<float> circularOutput(recordFrames + bufferFrames, 0); // circular buffer for output frames, sized with 1 extra buffer
 
 DSPModule dsp{}; // for filling with hot loaded DSPState pointers
 std::string dspPath = "build/plugins/libdsp.dylib"; // shared library file to load
 std::atomic<bool> reloading = 0; // flag to prevent double reloads
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
-std::vector<float> currentOutput(recordBuffers * bufferFrames, 0); // stored output frames for extra functions
 
 // -----------------------------------------------------------------------------
 // Load / Reload the DSP shared library (.dylib) and update the DSPModule struct
@@ -99,18 +100,17 @@ int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStre
     // Otherwise, output silence (avoid noise on error)
     else std::fill_n(static_cast<float*>(outBuffer), numFrames, 0.0f);
 
-    // copy ouput buffer for extra functions
-    static int count = 0;
-    int start = count * numFrames;
-    for (int i=start; i<start+numFrames; i++) currentOutput[i] = static_cast<float*>(outBuffer)[i];
-    count++;
-    if (count >= recordBuffers) count = 0;
-
+    // write ouput buffer to circular buffer for extra functions
+    for (int i=0; i<numFrames; i++) 
+    {
+        circularOutput[writeHead] = static_cast<float*>(outBuffer)[i];
+        writeHead = (writeHead + 1) % circularOutput.size();
+    }
     return 0; // exit code so RtAudio continues streaming
 }
 
 // -------------------------------------------------------------------------
-// Threaded function for reloading DSP code
+// Asynchronous function for reloading DSP code
     // Called whenver dsp.cpp file is changed
 // -------------------------------------------------------------------------
 void reloadDspThread()
@@ -122,7 +122,7 @@ void reloadDspThread()
 }
 
 // -------------------------------------------------------------------------
-// Threaded function for realtime parameter updates
+// Asynchronous function for realtime parameter updates
 // -------------------------------------------------------------------------
 void replThread()
 {
@@ -170,6 +170,26 @@ void replThread()
         }
         else std::cout << "unknown parameter\n";
     }
+}
+// -------------------------------------------------------------------------
+// Asynchronous function for exporting a .wav file
+// -------------------------------------------------------------------------
+void wavWriteThread()
+{
+    // FOR DEBUG TESTING
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    std::vector<float> wavSamples(recordFrames, 0);
+
+    // circular buffer readHead, 1 buffer ahead of writeHead
+    int index = (writeHead + bufferFrames) % circularOutput.size();
+
+    for (int i=0; i<recordFrames; i++)
+    {
+        wavSamples[i] = circularOutput[index];
+        index = (index + 1) % circularOutput.size();
+    }
+
 }
 
 // -----------------------------------------------------------------------------
@@ -243,9 +263,11 @@ int main()
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
-    // start REPL in background
+    // start REPL and wavWriter in background
     std::thread repl(replThread);
     repl.detach(); // run independently
+    std::thread wavWrite(wavWriteThread);
+    wavWrite.detach(); // run independently
 
     while (true) 
     {
