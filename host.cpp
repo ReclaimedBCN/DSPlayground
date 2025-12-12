@@ -26,11 +26,16 @@ struct DSPModule
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
+unsigned int sampleRate = 48000; // must match DSPState.sampleRate
+unsigned int bufferFrames = 256; // number of frames per audio callback
+unsigned int recordDuration = 2; // number of seconds to record
+unsigned int recordBuffers = sampleRate * recordDuration / bufferFrames; // approx number of buffers needed for record length
 
-DSPModule dsp{}; // global DSPModule object for filling with hot loaded DSPState pointers
-std::string dspPath = "build/plugins/libdsp.dylib"; // the shared library file to load
+DSPModule dsp{}; // for filling with hot loaded DSPState pointers
+std::string dspPath = "build/plugins/libdsp.dylib"; // shared library file to load
 std::atomic<bool> reloading = 0; // flag to prevent double reloads
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
+std::vector<float> currentOutput(recordBuffers * bufferFrames, 0); // stored output frames for extra functions
 
 // -----------------------------------------------------------------------------
 // Load / Reload the DSP shared library (.dylib) and update the DSPModule struct
@@ -52,7 +57,7 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
     auto destroyFn = (void (*)(void*))dlsym(handle, "destroyDSP");
     auto processFn = (void (*)(void*, float*, int))dlsym(handle, "processAudio");
 
-    // Validate all required functions were found
+    // Check all functions were found
     if (!createFn || !destroyFn || !processFn) 
     {
         std::cerr << "Invalid DSP symbols: " << dlerror() << "\n";
@@ -60,7 +65,7 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
         return false;
     }
 
-    // If a DSP is already loaded, free it's memory before creating a new DSPState object
+    // If DSP is already loaded, free it's memory before creating a new DSPState object
     if (dsp.destroy && dsp.state) dsp.destroy(dsp.state);
     // Create a new DSP state instance with the new module
     void* newState = createFn();
@@ -80,35 +85,40 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
 }
 
 // -------------------------------------------------------------------------
-// Define RtAudio callback function
-    // Function gets called by RtAudio whenever it needs more audio samples.
+// RtAudio callback function
+    // Called by RtAudio whenever it needs more audio samples
 // -------------------------------------------------------------------------
-int callback(void* outputBuffer, void*, unsigned int nFrames, double, RtAudioStreamStatus, void* userData)
+int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStreamStatus, void* userData)
 {
     // userData is a pointer passed when opening stream in try block below
     // cast userData pointer back to a DSPModule object pointer
     DSPModule* dsp = static_cast<DSPModule*>(userData);
 
     // If the DSP is loaded and valid, generate samples via processAudio function in dsp.cpp
-    if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outputBuffer), nFrames);
+    if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outBuffer), numFrames);
     // Otherwise, output silence (avoid noise on error)
-    else std::fill_n(static_cast<float*>(outputBuffer), nFrames, 0.0f);
+    else std::fill_n(static_cast<float*>(outBuffer), numFrames, 0.0f);
 
-    return 0; // return 0 so RtAudio continues streaming
+    // copy ouput buffer for extra functions
+    static int count = 0;
+    int start = count * numFrames;
+    for (int i=start; i<start+numFrames; i++) currentOutput[i] = static_cast<float*>(outBuffer)[i];
+    count++;
+    if (count >= recordBuffers) count = 0;
+
+    return 0; // exit code so RtAudio continues streaming
 }
 
 // -------------------------------------------------------------------------
 // Threaded function for reloading DSP code
-    // Function gets called whenver dsp.cpp file is changed
+    // Called whenver dsp.cpp file is changed
 // -------------------------------------------------------------------------
 void reloadDspThread()
 {
     // rebuild dynamic library
     system("make -C build dsp");
-    // reload DSP
-    loadDSP(dsp, dspPath);
-    // re-enable hot-reloading
-    reloading.store(0);
+    loadDSP(dsp, dspPath); // reload DSP
+    reloading.store(0); // re-enable hot-reloading
 }
 
 // -------------------------------------------------------------------------
@@ -116,7 +126,7 @@ void reloadDspThread()
 // -------------------------------------------------------------------------
 void replThread()
 {
-    // cast pointer to DSPState object from dsp.cpp to a DSPState object
+    // cast dsp.cpp's pointer to a DSPState object
     DSPState* params = static_cast<DSPState*>(dsp.state);
 
     std::string param;
@@ -168,7 +178,7 @@ void replThread()
 
 int main() 
 {
-    // Initial load. Fill DSPModule's placeholders with DSPState data from dsp.cpp
+    // Initial load, fill DSPModule's placeholders with data from dsp.cpp
     if (!loadDSP(dsp, dspPath)) 
     {
         std::cerr << "Failed initial DSP load\n";
@@ -178,7 +188,7 @@ int main()
     // -------------------------------
     // Setup RtAudio output stream
     // -------------------------------
-    RtAudio dac; // RtAudio output DAC object for interfacing with sound card
+    RtAudio dac; // RtAudio output DAC for interfacing with sound card
 
     if (dac.getDeviceCount() < 1) 
     {
@@ -191,21 +201,19 @@ int main()
     streamParams.deviceId = dac.getDefaultOutputDevice(); // choose default output
     streamParams.nChannels = 1;                           // mono output
 
-    unsigned int sampleRate = 48000; // must match DSPState.sampleRate
-    unsigned int bufferFrames = 256; // number of frames per audio callback
 
     // -------------------------------
     // Open and start the audio stream
     // -------------------------------
     try
     {
-        dac.openStream(&streamParams,         // output stream parameters
+        dac.openStream(&streamParams,   // output stream parameters
                        nullptr,         // no input stream
                        RTAUDIO_FLOAT32, // sample format
                        sampleRate,
-                       &bufferFrames,   // sample frames per callback
-                       callback,        // audio callback
-                       &dsp);           // userData (passed to callback)
+                       &bufferFrames,   // number of sample frames per callback
+                       callback,        // callback function name
+                       &dsp);           // userData to pass to callback
         dac.startStream();
     }
     catch (RtAudioErrorType& errCode)
@@ -231,7 +239,7 @@ int main()
     // -------------------------------------------------------------------------
     // Main loop: Start REPL thread, check for DSP file changes
     // -------------------------------------------------------------------------
-    // init / declare variables
+    // setup
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
@@ -264,7 +272,7 @@ int main()
             // don't block main thread whilst reloading
             reload.detach();
         }
-        // Check every 100 ms
+        // Check every 300 ms
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
