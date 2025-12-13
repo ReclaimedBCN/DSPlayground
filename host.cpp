@@ -11,6 +11,16 @@
 #include "RtAudio.h"       // RtAudio for cross-platform audio I/O
 #include "dsp.h"           // Shared class for DSP parameters
 
+#include "globals.h"
+
+static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
+
+// -----------------------------------------------------------------------------
+// Globals
+// -----------------------------------------------------------------------------
+Globals globals;
+unsigned int rtBufferFrames = BUFFERFRAMES; // assign constant to mutable as RtAudio will change value if unsupported by system
+
 // -----------------------------------------------------------------------------
 // Struct to hold function pointers and state for hot loaded data from dsp.cpp
 // -----------------------------------------------------------------------------
@@ -22,29 +32,15 @@ struct DSPModule
     void (*destroy)(void*);                 // function pointer: destroyDSP()
     void (*process)(void*, float*, int);    // function pointer: processAudio() + floatOut + numFrames
 };
-
-// -----------------------------------------------------------------------------
-// Globals
-// -----------------------------------------------------------------------------
-unsigned int sampleRate = 48000; // must match DSPState.sampleRate
-unsigned int bufferFrames = 256; // number of frames per audio callback
-unsigned int recordDuration = 2; // number of seconds to record
-unsigned int recordFrames = sampleRate * recordDuration;
-unsigned int writeHead = 0; // circular buffer write head
-std::vector<float> circularOutput(recordFrames + bufferFrames, 0); // circular buffer for output frames, sized with 1 extra buffer
-
 DSPModule dsp{}; // for filling with hot loaded DSPState pointers
-std::string dspPath = "build/plugins/libdsp.dylib"; // shared library file to load
-std::atomic<bool> reloading = 0; // flag to prevent double reloads
-static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
 // -----------------------------------------------------------------------------
 // Load / Reload the DSP shared library (.dylib) and update the DSPModule struct
 // -----------------------------------------------------------------------------
-bool loadDSP(DSPModule& dsp, const std::string& path) 
+bool loadDSP(DSPModule& dsp) 
 {
     // Try to open the shared library file
-    void* handle = dlopen(path.c_str(), RTLD_NOW);
+    void* handle = dlopen(DSPPATH, RTLD_NOW);
     // null pointer catch
     if (!handle) 
     {
@@ -91,20 +87,24 @@ bool loadDSP(DSPModule& dsp, const std::string& path)
 // -------------------------------------------------------------------------
 int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStreamStatus, void* userData)
 {
-    // userData is a pointer passed when opening stream in try block below
-    // cast userData pointer back to a DSPModule object pointer
-    DSPModule* dsp = static_cast<DSPModule*>(userData);
-
-    // If the DSP is loaded and valid, generate samples via processAudio function in dsp.cpp
-    if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outBuffer), numFrames);
-    // Otherwise, output silence (avoid noise on error)
-    else std::fill_n(static_cast<float*>(outBuffer), numFrames, 0.0f);
-
-    // write ouput buffer to circular buffer for extra functions
-    for (int i=0; i<numFrames; i++) 
+    if(userData) // null pointer check
     {
-        circularOutput[writeHead] = static_cast<float*>(outBuffer)[i];
-        writeHead = (writeHead + 1) % circularOutput.size();
+        // userData is a pointer passed when opening stream in try block below
+        // cast userData pointer back to a DSPModule object pointer, same for globals
+        DSPModule* dsp = static_cast<DSPModule*>(userData);
+        // Globals* globals = static_cast<Globals*>(dsp->globals);
+
+        // If the DSP is loaded and valid, generate samples via processAudio function in dsp.cpp
+        if (dsp->process && dsp->state) dsp->process(dsp->state, static_cast<float*>(outBuffer), numFrames);
+        // Otherwise, output silence (avoid noise on error)
+        else std::fill_n(static_cast<float*>(outBuffer), numFrames, 0.0f);
+
+        // write ouput buffer to circular buffer for extra functions
+        for (int i=0; i<numFrames; i++) 
+        {
+            globals.circularOutput[globals.writeHead] = static_cast<float*>(outBuffer)[i];
+            globals.writeHead = (globals.writeHead + 1) % globals.circularOutput.size();
+        }
     }
     return 0; // exit code so RtAudio continues streaming
 }
@@ -117,8 +117,8 @@ void reloadDspThread()
 {
     // rebuild dynamic library
     system("make -C build dsp");
-    loadDSP(dsp, dspPath); // reload DSP
-    reloading.store(0); // re-enable hot-reloading
+    loadDSP(dsp); // reload DSP
+    globals.reloading.store(0); // re-enable hot-reloading
 }
 
 // -------------------------------------------------------------------------
@@ -179,15 +179,15 @@ void wavWriteThread()
     // FOR DEBUG TESTING
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    std::vector<float> wavSamples(recordFrames, 0);
+    std::vector<float> wavSamples(RECORDFRAMES, 0);
 
     // circular buffer readHead, 1 buffer ahead of writeHead
-    int index = (writeHead + bufferFrames) % circularOutput.size();
+    int index = (globals.writeHead + BUFFERFRAMES) % globals.circularOutput.size();
 
-    for (int i=0; i<recordFrames; i++)
+    for (int i=0; i<RECORDFRAMES; i++)
     {
-        wavSamples[i] = circularOutput[index];
-        index = (index + 1) % circularOutput.size();
+        wavSamples[i] = globals.circularOutput[index];
+        index = (index + 1) % globals.circularOutput.size();
     }
 
 }
@@ -199,7 +199,7 @@ void wavWriteThread()
 int main() 
 {
     // Initial load, fill DSPModule's placeholders with data from dsp.cpp
-    if (!loadDSP(dsp, dspPath)) 
+    if (!loadDSP(dsp)) 
     {
         std::cerr << "Failed initial DSP load\n";
         return 1;
@@ -230,8 +230,8 @@ int main()
         dac.openStream(&streamParams,   // output stream parameters
                        nullptr,         // no input stream
                        RTAUDIO_FLOAT32, // sample format
-                       sampleRate,
-                       &bufferFrames,   // number of sample frames per callback
+                       SAMPLERATE,
+                       &rtBufferFrames,   // number of sample frames per callback
                        callback,        // callback function name
                        &dsp);           // userData to pass to callback
         dac.startStream();
@@ -266,8 +266,8 @@ int main()
     // start REPL and wavWriter in background
     std::thread repl(replThread);
     repl.detach(); // run independently
-    std::thread wavWrite(wavWriteThread);
-    wavWrite.detach(); // run independently
+    // std::thread wavWrite(wavWriteThread);
+    // wavWrite.detach(); // run independently
 
     while (true) 
     {
@@ -283,10 +283,10 @@ int main()
         }
 
         // start a new thread when file edited & not currently reloading
-        if ((currentTime != lastWriteTime) && !reloading.load())
+        if ((currentTime != lastWriteTime) && !globals.reloading.load())
         {
             // prevent double reloads
-            reloading.store(1);
+            globals.reloading.store(1);
             lastWriteTime = currentTime;
 
             std::cout << "RELOADING DSP" << std::endl;

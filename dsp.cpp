@@ -4,6 +4,8 @@
 // -------------------------------
 
 #include <cmath>            // for sinf() and M_PI
+
+#include "globals.h"
 #include "dsp.h"
 
 // extern "C" to prevent stripping of symbol names
@@ -19,7 +21,7 @@ extern "C" void* createDSP()
     float freq = 220.0f;
     float gain = 0.6f;
     bool bypass = 0;
-    int sampleRate = 48000; // sampleRate should match output stream sampleRate
+    int sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
 
     return new DSPState(phase, freq, gain, bypass, sampleRate);
 }
