@@ -2,16 +2,17 @@
 // RtAudio Host with DSP Hot-Reload:
     // flow: inital load, audio setup, dynamic reload loop, cleanup
 // -----------------------------------------------------------------------------
-
 #include <iostream>
 #include <thread>
 #include <filesystem>
 #include <chrono>
 #include <dlfcn.h>         // for dlopen, dlsym, dlclose
+
 #include "RtAudio.h"       // RtAudio for cross-platform audio I/O
-#include "dsp.h"           // Shared class for DSP parameters
 
 #include "globals.h"
+#include "dsp.h"           // Shared class for DSP parameters
+#include "wavParser.h"
 
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
@@ -122,6 +123,16 @@ void reloadDspThread()
 }
 
 // -------------------------------------------------------------------------
+// Asynchronous function for exporting a .wav file
+// -------------------------------------------------------------------------
+void wavWriteThread()
+{
+    // std::cout << "wait for it.. " << std::endl;
+    // std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+    writeWav(globals);
+}
+
+// -------------------------------------------------------------------------
 // Asynchronous function for realtime parameter updates
 // -------------------------------------------------------------------------
 void replThread()
@@ -168,28 +179,13 @@ void replThread()
             params->sampleRate.store(static_cast<int>(value));
             std::cout << "sampleRate set to " << value << "\n";
         }
+        else if (param == "rec")
+        {
+            std::thread wavWrite(wavWriteThread);
+            wavWrite.detach(); // run independently
+        }
         else std::cout << "unknown parameter\n";
     }
-}
-// -------------------------------------------------------------------------
-// Asynchronous function for exporting a .wav file
-// -------------------------------------------------------------------------
-void wavWriteThread()
-{
-    // FOR DEBUG TESTING
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    std::vector<float> wavSamples(RECORDFRAMES, 0);
-
-    // circular buffer readHead, 1 buffer ahead of writeHead
-    int index = (globals.writeHead + BUFFERFRAMES) % globals.circularOutput.size();
-
-    for (int i=0; i<RECORDFRAMES; i++)
-    {
-        wavSamples[i] = globals.circularOutput[index];
-        index = (index + 1) % globals.circularOutput.size();
-    }
-
 }
 
 // -----------------------------------------------------------------------------
@@ -263,11 +259,9 @@ int main()
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
-    // start REPL and wavWriter in background
+    // start REPL (and potentially wavWriter) in background
     std::thread repl(replThread);
     repl.detach(); // run independently
-    // std::thread wavWrite(wavWriteThread);
-    // wavWrite.detach(); // run independently
 
     while (true) 
     {

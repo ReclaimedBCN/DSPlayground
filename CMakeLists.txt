@@ -16,7 +16,10 @@ include_directories(${CMAKE_SOURCE_DIR}/includes)
 # -----------------------
 # Host executable
 # -----------------------
-add_executable(dspPlayground host.cpp)
+add_executable(dspPlayground
+    host.cpp
+    wavParser.cpp
+)
 
 find_library(RTAUDIO_LIBRARY rtaudio)
 

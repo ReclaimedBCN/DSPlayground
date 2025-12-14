@@ -19,7 +19,7 @@ extern "C" void* createDSP()
     // initial parameters
     float phase = 0.0f;
     float freq = 220.0f;
-    float gain = 0.6f;
+    float gain = 0.1f;
     bool bypass = 0;
     int sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
 
