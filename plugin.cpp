@@ -1,20 +1,20 @@
 // -------------------------------
 // Hot-Reloadable DSP Code
-    // Rebuild with command: make dsp
+    // Rebuild with command: make plugin
 // -------------------------------
 
 #include <cmath>            // for sinf() and M_PI
 
 #include "globals.h"
-#include "dsp.h"
+#include "plugin.h"
 
 // extern "C" to prevent stripping of symbol names
 
 // ----------------------------------------------------------------------------------------------
-// Allocates a new DSPState object on the heap and sets paramters & returns a void* pointer to it
+// Allocates a new PluginState object on the heap and sets paramters & returns a void* pointer to it
     // Called when the module is first loaded
 // ----------------------------------------------------------------------------------------------
-extern "C" void* createDSP() 
+extern "C" void* createPlugin() 
 {
     // initial parameters
     float phase = 0.0f;
@@ -23,19 +23,19 @@ extern "C" void* createDSP()
     bool bypass = 0;
     int sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
 
-    return new DSPState(phase, freq, gain, bypass, sampleRate);
+    return new PluginState(phase, freq, gain, bypass, sampleRate);
 }
 
-// Frees the memory allocated in createDSP()
+// Frees the memory allocated in createPlugin()
     // Called when the module is about to be unloaded (e.g., before hot-reload)
-extern "C" void destroyDSP(void* state) { delete static_cast<DSPState*>(state); }
+extern "C" void destroyPlugin(void* state) { delete static_cast<PluginState*>(state); }
 
 // DSP Code: Generates 'numFrames' samples into the 'out' buffer
     // Called once per audio block by the host
-extern "C" void processAudio(void* state, float* out, int numFrames) 
+extern "C" void processPlugin(void* state, float* out, int numFrames) 
 {
-    // Cast the untyped void* back into a DSPState typed pointer
-    auto* params = static_cast<DSPState*>(state);
+    // Cast the untyped void* back into a PluginState typed pointer
+    auto* params = static_cast<PluginState*>(state);
 
     // assign atomics to local variables (for easier syntax within DSP calculations)
     float phase = params->phase.load();

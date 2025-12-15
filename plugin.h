@@ -8,7 +8,7 @@
 
 // Struct to hold all info about the per-instance DSP state
     // Host never looks inside — just stores a void* to it
-class DSPState
+class PluginState
 {
     public:
         std::atomic<float> phase;
@@ -17,7 +17,7 @@ class DSPState
         std::atomic<bool>  bypass;
         std::atomic<int> sampleRate;
 
-        DSPState(float phaseInit, float freqInit, float gainInit, bool bypassInit, int sampleRateInit): 
+        PluginState(float phaseInit, float freqInit, float gainInit, bool bypassInit, int sampleRateInit): 
             phase(phaseInit),
             freq(freqInit),
             gain(gainInit),

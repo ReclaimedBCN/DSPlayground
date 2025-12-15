@@ -33,10 +33,10 @@ target_link_libraries(dspPlayground
 # -----------------------
 # DSP plugin (hot reload)
 # -----------------------
-add_library(dsp SHARED dsp.cpp)
+add_library(plugin SHARED plugin.cpp)
 
-set_target_properties(dsp PROPERTIES
+set_target_properties(plugin PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/plugins
-    OUTPUT_NAME "dsp"
+    OUTPUT_NAME "plugin"
 )
 
