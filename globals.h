@@ -12,13 +12,22 @@ constexpr char PLUGINSOURCE[] = "plugin.cpp"; // .cpp source file path for plugi
 constexpr char PLUGINPATH[] = "./build/plugins/libplugin.dylib"; // shared library file to load
 constexpr short BYTETOBITS = 8;
 constexpr short RECORDBITDEPTH = 16;
+constexpr float INVSAMPLERATE = 1.f / SAMPLERATE;
+
+constexpr float PI = 3.14159265358979323846f;
+constexpr float TWOPI = PI + PI;
+constexpr float HALFPI = PI / 2.f;
+constexpr float QUARTPI = PI / 4.f;
+constexpr float PISQUARED = PI * PI;
+constexpr float INVPI = 1.f / PI;
+constexpr float INV60 = 1.f / 60;
 
 // globals
 struct Globals
 {
     unsigned int writeHead = 0; // circular buffer write head
     std::atomic<bool> reloading = 0; // flag to prevent double reloads
-    std::vector<float> circularOutput = std::vector<float>(RECORDFRAMES + BUFFERFRAMES, 0); // circular buffer for output frames, sized with 1 extra buffer
-    std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0);
+    std::vector<float> circularOutput = std::vector<float>(RECORDFRAMES + BUFFERFRAMES, 0.f); // circular buffer for output frames, sized with 1 extra buffer
+    std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
 };
 
