@@ -17,6 +17,7 @@ include_directories(${CMAKE_SOURCE_DIR}/includes)
 add_executable(${projectName}
     host.cpp
     wavParser.cpp
+    ui.cpp
 )
 
 # -- DSP plugin ---------------------

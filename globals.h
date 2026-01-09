@@ -23,13 +23,25 @@ constexpr float PISQUARED = PI * PI;
 constexpr float INVPI = 1.f / PI;
 constexpr float INV60 = 1.f / 60;
 
-// globals
+// -----------------------------------------------------------------------------
+// Globals
+// -----------------------------------------------------------------------------
 struct Globals
 {
     unsigned int writeHead = 0; // circular buffer write head
     std::atomic<bool> reloading = 0; // flag to prevent double reloads
     std::vector<float> circularOutput = std::vector<float>(RECORDFRAMES + BUFFERFRAMES, 0.f); // circular buffer for output frames, sized with 1 extra buffer
     std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
+};
+
+// hold function pointers and state for hot loaded data from plugin.cpp
+struct PluginModule 
+{
+    void* handle = nullptr;                 // dynamic library handle returned by dlopen()
+    void* state = nullptr;                  // pointer to DSPState instance created by DSP module
+    void* (*create)();                      // function pointer: createDSP()
+    void (*destroy)(void*);                 // function pointer: destroyDSP()
+    void (*process)(void*, float*, int);    // function pointer: processAudio() + floatOut + numFrames
 };
 
 // circular buffer for logging standard output
