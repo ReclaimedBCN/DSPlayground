@@ -123,7 +123,7 @@ void wavWriteThread()
 // -------------------------------------------------------------------------
 // Asynchronous function for realtime parameter updates
 // -------------------------------------------------------------------------
-void replThread()
+void uiThread()
 {
     std::string param;
     float value;
@@ -181,7 +181,7 @@ void replThread()
         else std::cout << "unknown parameter\n";
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    replThread();
+    uiThread();
 }
 
 // -------------------------------------------------------------------------
@@ -261,15 +261,15 @@ int main()
     std::cout << "Audio stream running\n" << "Edit plugin.cpp to hear changes live\n";
 
     // -------------------------------------------------------------------------
-    // Main loop: Start REPL thread, check for plugin file changes
+    // Main loop: Start UI thread, check for plugin file changes
     // -------------------------------------------------------------------------
     // setup
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
-    // start REPL (and potentially wavWriter) in background
-    std::thread repl(replThread);
-    repl.detach(); // run independently
+    // start UI (and potentially wavWriter) in background
+    std::thread ui(uiThread);
+    ui.detach(); // run independently
 
     while (true) 
     {
