@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <string>
 
 #include "globals.h"
 
@@ -13,8 +14,8 @@ void writeBytes(std::ofstream& file, int value, int size)
     file.write(reinterpret_cast<const char*> (&value), size);
 }
 
-void writeWav(Globals& globals) {
-    std::cout << "recording.." << std::endl;
+void writeWav(Globals& globals, LogBuffer& logBuff) {
+    logBuff.setNewLine("recording..");
     // setup
     std::ofstream audioFile;
     audioFile.open("recording.wav", std::ios::binary);
@@ -67,7 +68,7 @@ void writeWav(Globals& globals) {
 
     audioFile.close();
 
-    std::cout << "recording saved!" << RECORDDURATION << " seconds" << std::endl;
-    std::cout << "> ";
+    logBuff.setNewLine("recording saved!");
+    logBuff.setNewLine("recording.wav = " + std::to_string(RECORDDURATION) + " seconds");
 }
 

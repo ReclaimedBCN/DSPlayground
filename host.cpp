@@ -6,13 +6,31 @@
 #include <thread>
 #include <filesystem>
 #include <chrono>
-#include <dlfcn.h>         // for dlopen, dlsym, dlclose
+#include <dlfcn.h>          // for dlopen, dlsym, dlclose
 
-#include "RtAudio.h"       // RtAudio for cross-platform audio I/O
+#include "RtAudio.h"        // RtAudio for cross-platform audio I/O
 
 #include "globals.h"
-#include "plugin.h"           // Shared class for DSP parameters
+#include "plugin.h"         // Shared class for DSP parameters
 #include "wavParser.h"
+
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
+#include "ftxui/component/component_options.hpp"
+#include "ftxui/component/event.hpp"
+#include "ftxui/component/screen_interactive.hpp"
+#include "ftxui/component/loop.hpp"
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/canvas.hpp"
+#include "ftxui/screen/color.hpp"
+
+#include "ftxui/component/mouse.hpp"
+#include <cmath>     // for sin
+#include <functional>  // for ref, reference_wrapper, function
+#include <memory>      // for allocator, shared_ptr, __shared_ptr_access
+#include <string>  // for string, basic_string, char_traits, operator+, to_string
+#include <utility>  // for move
+#include <vector>   // for vector
 
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
@@ -21,6 +39,8 @@ static_assert (std::atomic<float>::is_always_lock_free); // check float type is 
 // -----------------------------------------------------------------------------
 Globals globals;
 unsigned int rtBufferFrames = BUFFERFRAMES; // assign constant to mutable as RtAudio will change value if unsupported by system
+
+LogBuffer logBuff; // circular buffer for logging standard output
 
 // -----------------------------------------------------------------------------
 // Struct to hold function pointers and state for hot loaded data from plugin.cpp
@@ -78,8 +98,7 @@ bool loadPlugin(PluginModule& plugin)
     plugin.destroy = destroyFn;
     plugin.process = processFn;
 
-    std::cout << "Plugin reloaded successfully" << std::endl;
-    std::cout << "REPL ready. Try commands like: <parameter> <value>" << std::endl;
+    logBuff.setNewLine("Plugin reloaded successfully");
     return true;
 }
 
@@ -113,32 +132,279 @@ int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStre
 // -------------------------------------------------------------------------
 // Asynchronous function for exporting a .wav file
 // -------------------------------------------------------------------------
-void wavWriteThread()
-{
-    // std::cout << "wait for it.. " << std::endl;
-    // std::this_thread::sleep_for(std::chrono::milliseconds(6000));
-    writeWav(globals);
-}
+void wavWriteThread() { writeWav(globals, logBuff); }
 
 // -------------------------------------------------------------------------
 // Asynchronous function for realtime parameter updates
 // -------------------------------------------------------------------------
 void uiThread()
 {
-    std::string param;
-    float value;
+    // if (globals.reloading.load() == 0) std::cout << "REPL ready. Try commands like: <parameter> <value>" << std::endl;
 
-    if (globals.reloading.load() == 0) std::cout << "REPL ready. Try commands like: <parameter> <value>" << std::endl;
+    using namespace ftxui;
+
+    auto screen = ScreenInteractive::Fullscreen();
+
+    auto Wrap = [](std::string name, Component component) 
+    {
+        return Renderer(component, [name, component] 
+        {
+            return hbox(
+            {
+                text(name) | size(WIDTH, EQUAL, 8),
+                separator(),
+                component->Render() | xflex,
+            }) | xflex;
+        });
+    };
+
+    auto Spacer = []() 
+    {
+        return Renderer([] 
+        {
+            return hbox(
+            {
+                text("") | size(WIDTH, EQUAL, 8),
+                separator(),
+            }) | xflex;
+        });
+    };
+
+    auto logTest = []()
+    {
+        Dimensions termDim = Terminal::Size();
+        const int termWidth = termDim.dimx;
+        const int termHeight = termDim.dimy;
+        logBuff.setNewLine("termX" + std::to_string(termWidth) + " termY" + std::to_string(termHeight));
+    };
+
+    // -- Toggles ---------------------------------------------------------------
+    bool checkbox_1_selected = false;
+    bool checkbox_2_selected = false;
+    bool checkbox_3_selected = false;
+    bool checkbox_4_selected = false;
+
+    auto toggles = Container::Vertical(
+    {
+        Checkbox("checkbox1", &checkbox_1_selected),
+        Checkbox("checkbox2", &checkbox_2_selected),
+        Checkbox("checkbox3", &checkbox_3_selected),
+        Checkbox("checkbox4", &checkbox_4_selected),
+    });
+    toggles = Wrap("Toggles", toggles);
+
+    // -- Buttons -----------------------------------------------------------------
+    int tab_index = 0;
+    auto buttons = Container::Horizontal(
+    {
+        Button("Reset", [&] { logTest(); }, ButtonOption::Animated(Color::Orange4)) | xflex_grow,
+        Button("Log", [&] { tab_index = 1; }, ButtonOption::Animated(Color::DeepSkyBlue4)) | xflex_grow,
+        Button("Record WAV", [&] { screen.Exit(); }, ButtonOption::Animated(Color::DarkRed)) | xflex_grow,
+    });
+    buttons = Wrap("Buttons", buttons);
+
+    // -- Sliders -----------------------------------------------------------------
+    int slider_value_1 = 12;
+    int slider_value_2 = 56;
+    int slider_value_3 = 78;
+    auto sliders = Container::Vertical(
+    {
+        // args = name, current value, min, max, increment
+        Slider("Freq:", &slider_value_1, 0, 127, 1) | color(Color::Blue),
+        Slider("Vol:", &slider_value_2, 0, 127, 1) | color(Color::Magenta),
+        Slider("Phase:", &slider_value_3, 0, 127, 1) | color(Color::Yellow),
+    });
+    sliders = Wrap("Sliders", sliders);
+
+    auto paramNumbers = [](int v1, int v2, int v3)
+    {
+        return text(
+            "freq: " + std::to_string(v1) 
+            + ", Vol: " + std::to_string(v2) 
+            + ", Phase: " + std::to_string(v3)
+        ) | dim;
+    };
+
+    auto spacer = Spacer();
+
+    // mouse co-ords
+    int mouse_x = 0;
+    int mouse_y = 0;
+
+    auto braillePlot = Renderer([&] 
+    {
+        Dimensions termDim = Terminal::Size();
+        const int plotWidth = (termDim.dimx * 1.5) - 8; // 8 for (+1, 0, -1) axis guide
+        const int plotHeight = (termDim.dimy * 1.5);
+
+        auto plot = Canvas(plotWidth, plotHeight);
+        plot.DrawText(0, 0, "Waveform", Color::Grey50);
+
+        std::vector<int> ys(plotWidth);
+
+        for (int x=0; x<plotWidth; x++) 
+        {
+            float dx = float(x - mouse_x);
+            float dy = static_cast<float>(plotHeight) * 0.5;
+            ys[x] = int(dy + 20 * cos(dx * 0.14) + 10 * sin(dx * 0.42));
+        }
+
+        for (int x=1; x<plotWidth-1; x++) plot.DrawPointLine(x, ys[x], x + 1, ys[x + 1]);
+
+        return canvas(std::move(plot));
+    });
+
+    auto filledPlot = Renderer([&] 
+    {
+        Dimensions termDim = Terminal::Size();
+        const int plotWidth = (termDim.dimx * 1.5) - 8; // 8 for (+1, 0, -1) axis guide
+        const int plotHeight = (termDim.dimy * 1.5);
+
+        auto plot = Canvas(plotWidth, plotHeight);
+        plot.DrawText(0, 0, "Absolute Waveform", Color::Grey50);
+
+        std::vector<int> ys(plotWidth);
+
+        for (int x=0; x<plotWidth; x++) 
+        {
+            ys[x] = int(30 + 10 * cos(x * 0.2 - mouse_x * 0.05)
+                        + 5 * sin(x * 0.4) +
+                        5 * sin(x * 0.3 - mouse_y * 0.05));
+        }
+
+        int halfHeight = plotHeight * 0.5;
+        for (int x=0; x<plotWidth; x++) 
+        {
+            plot.DrawPointLine(x, halfHeight + ys[x], x, halfHeight - ys[x], Color::Red);
+        }
+
+        return canvas(std::move(plot));
+    });
+
+    auto plots = Container::Horizontal(
+        {
+            braillePlot,
+            filledPlot,
+        });
+
+    // Capture the last mouse position
+    auto mousePos = CatchEvent(plots, [&](Event e) {
+    if (e.is_mouse()) 
+    {
+        mouse_x = (e.mouse().x - 1) * 2;
+        mouse_y = (e.mouse().y - 1) * 4;
+    }
+    return false;
+    });
+
+    // RENDERER
+    auto plotRenderer = Renderer(mousePos, [&] 
+    {
+        return hbox(
+        {
+            braillePlot->Render(),
+            filledPlot->Render(),
+        }) | borderEmpty;
+    });
+
+    // -- Layout ----------------------
+    auto layout = Container::Vertical({
+        toggles,
+        sliders,
+        buttons,
+        plotRenderer,
+    });
+
+    auto paramsTab = Renderer(layout, [&] {
+    return vbox({
+                separator(),
+                toggles->Render(),
+                spacer->Render(),
+                sliders->Render(),
+                spacer->Render(),
+                buttons->Render(),
+
+                separator(),
+                paramNumbers(slider_value_1, slider_value_2, slider_value_3),
+
+                separator(),
+                hbox({
+                    // filler(),
+                    vbox({
+                        separatorEmpty(),
+                        text("1 ") | center | size(WIDTH, EQUAL, 8),
+                        filler(),
+                        text("0 ") | center | size(WIDTH, EQUAL, 8),
+                        filler(),
+                        text("-1 ") | center | size(WIDTH, EQUAL, 8),
+                        separatorEmpty(),
+                    }),
+                    // | xflex,
+                    // filler(),
+                    separator(),
+                    plotRenderer->Render(),
+                }),
+                separator(),
+                logBuff.getMiniLog(),
+                // | flex,
+            }); 
+            // | xflex | size(WIDTH, GREATER_THAN, 40) | borderEmpty;
+
+    });
+
+    auto logTab = Renderer([] { return logBuff.getFullLog(); });
+
+    // TABS
+
+    std::vector<std::string> tab_entries = {
+        "Params", "Log",
+    };
+
+    auto option = MenuOption::HorizontalAnimated();
+    option.underline.SetAnimation(std::chrono::milliseconds(150),
+                                animation::easing::BackOut);
+    auto tab_selection =
+        Menu(&tab_entries, &tab_index, option);
+    auto tab_content = Container::Tab(
+        {
+            paramsTab,
+            logTab,
+            // Renderer(mousePos, [&] { return renderer_plot_1->Render(); })
+            // optionsTab
+        },
+        &tab_index);
+
+    // SCREEN & WINDOW RENDER
+
+    auto exit_button = Container::Horizontal({
+        Button("Exit", [&] { screen.Exit(); }, ButtonOption::Animated()),
+    });
+
+    auto tab_container = Container::Vertical({
+        Container::Horizontal({
+            tab_selection,
+            exit_button,
+        }),
+        tab_content,
+    });
+
+    auto main_renderer = Renderer(tab_container, [&] {
+        return vbox({
+            text("dspPlayground") | bold | hcenter,
+            hbox({
+                tab_selection->Render() | flex,
+                exit_button->Render(),
+            }),
+            tab_content->Render() | flex,
+        });
+    });
+
+    screen.Loop(main_renderer);
 
     // start REPL loop
     while (true) 
     {
-        // assign user input
-        std::cout << "> ";
-        std::cin >> param >> value;
-        // User closed stdin (Ctrl-D)
-        if (!std::cin) break;
-
+        /*
         // If plugin reloaded, params pointer no-longer valid
         if (globals.reloading.load() == 1) 
         {   
@@ -153,35 +419,15 @@ void uiThread()
             if (params) params->phase.store(value);
             std::cout << "phase set to " << value << "\n";
         }
-        else if (param == "freq") 
-        {
-            if (params) params->freq.store(value);
-            std::cout << "freq set to " << value << "\n";
-        }
-        else if (param == "gain") 
-        {
-            if (params) params->gain.store(value);
-            std::cout << "gain set to " << value << "\n";
-        }
-        else if (param == "bypass") 
-        {
-            if (params) params->bypass.store(value != 0);
-            std::cout << "bypass set to " << (value != 0) << "\n";
-        }
-        else if (param == "sampleRate") 
-        {
-            if (params) params->sampleRate.store(static_cast<int>(value));
-            std::cout << "sampleRate set to " << value << "\n";
-        }
         else if (param == "rec")
         {
             std::thread wavWrite(wavWriteThread);
             wavWrite.detach(); // run independently
         }
-        else std::cout << "unknown parameter\n";
+        */
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    uiThread();
+    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    // uiThread();
 }
 
 // -------------------------------------------------------------------------
@@ -225,6 +471,9 @@ int main()
     streamParams.deviceId = dac.getDefaultOutputDevice(); // choose default output
     streamParams.nChannels = 1;                           // mono output
 
+    // start UI (and potentially wavWriter) in background
+    std::thread ui(uiThread);
+    ui.detach(); // run independently
 
     // -------------------------------
     // Open and start the audio stream
@@ -242,23 +491,23 @@ int main()
     }
     catch (RtAudioErrorType& errCode)
     {
-        std::cout << dac.getErrorText() << std::endl;
-        if (errCode == 0) std::cout << "No error" << std::endl;
-        else if (errCode == 1) std::cout << "Non-critical error" << std::endl;
-        else if (errCode == 2) std::cout << "UNspecified error type" << std::endl;
-        else if (errCode == 3) std::cout << "No devices found" << std::endl;
-        else if (errCode == 4) std::cout << "Invalid device ID was specified" << std::endl;
-        else if (errCode == 5) std::cout << "Device in use was disconnected" << std::endl;
-        else if (errCode == 6) std::cout << "Error occurred during memeory allocation" << std::endl;
-        else if (errCode == 7) std::cout << "Invalid parameter was specified to a fucntion" << std::endl;
-        else if (errCode == 8) std::cout << "Function was called incoorectly" << std::endl;
-        else if (errCode == 9) std::cout << "System driver error occurred" << std::endl;
-        else if (errCode == 10) std::cout << "System error occurred" << std::endl;
-        else if (errCode == 11) std::cout << "Thread error ocurred" << std::endl;
+        logBuff.setNewLine(dac.getErrorText());
+        if (errCode == 0) logBuff.setNewLine("No error");
+        else if (errCode == 1) logBuff.setNewLine("Non-critical error");
+        else if (errCode == 2) logBuff.setNewLine("Unspecified error type");
+        else if (errCode == 3) logBuff.setNewLine("No devices found");
+        else if (errCode == 4) logBuff.setNewLine("Invalid device ID was specified");
+        else if (errCode == 5) logBuff.setNewLine("Device in use was disconnected");
+        else if (errCode == 6) logBuff.setNewLine("Error occurred during memeory allocation");
+        else if (errCode == 7) logBuff.setNewLine("Invalid parameter was specified to a fucntion");
+        else if (errCode == 8) logBuff.setNewLine("Function was called incoorectly");
+        else if (errCode == 9) logBuff.setNewLine("System driver error occurred");
+        else if (errCode == 10) logBuff.setNewLine("System error occurred");
+        else if (errCode == 11) logBuff.setNewLine("Thread error ocurred");
         return 1;
     }
-
-    std::cout << "Audio stream running\n" << "Edit plugin.cpp to hear changes live\n";
+    logBuff.setNewLine("Audio stream running");
+    logBuff.setNewLine("Edit plugin.cpp to hear changes live");
 
     // -------------------------------------------------------------------------
     // Main loop: Start UI thread, check for plugin file changes
@@ -266,10 +515,6 @@ int main()
     // setup
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
-
-    // start UI (and potentially wavWriter) in background
-    std::thread ui(uiThread);
-    ui.detach(); // run independently
 
     while (true) 
     {
@@ -291,7 +536,7 @@ int main()
             globals.reloading.store(1);
             lastWriteTime = currentTime;
 
-            std::cout << "RELOADING PLUGIN" << std::endl;
+            logBuff.setNewLine("RELOADING PLUGIN");
             std::thread reload(reloadPluginThread);
             // don't block main thread whilst reloading
             reload.detach();

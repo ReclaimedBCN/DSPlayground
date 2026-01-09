@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <vector>
+#include "ftxui/dom/elements.hpp"
 
 // constants
 constexpr std::size_t SAMPLERATE = 48000; // should be a sampleRate supported by RTaudio and your soundcard
@@ -31,3 +32,47 @@ struct Globals
     std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
 };
 
+// circular buffer for logging standard output
+class LogBuffer
+{
+    public:
+        void setNewLine(std::string text)
+        {
+            _logBuffer[_writeHead] = text; // add to circular buffer
+            _writeHead = (_writeHead + 1) & _size - 1; // increment & wrap
+        }
+        std::string getLine(int index) 
+        {
+            if (index >= 0 && index <= _size) return _logBuffer[index]; 
+            else return "";
+        }
+        int getWriteHead() { return _writeHead; }
+        int getSize() { return _size; }
+        ftxui::Element getMiniLog()
+        {
+            int size = 16;
+            std::string logOut = ""; // clear
+            for (int i=1; i<size; i++) 
+            {
+                int jump = size - i; // start from back of queue
+                int readHead = (_writeHead - jump) & size - 1; // wrap
+                logOut += this->getLine(readHead) + "\n"; // output all lines, oldest --> most recent
+            }
+            return ftxui::paragraph(logOut);
+        }
+        ftxui::Element getFullLog()
+        {
+            std::string logOut = ""; // clear
+            for (int i=1; i<_size; i++) 
+            {
+                int jump = _size - i; // start from back of queue
+                int readHead = (_writeHead - jump) & _size - 1; // wrap
+                logOut += this->getLine(readHead) + "\n"; // output all lines, oldest --> most recent 
+            }
+            return ftxui::paragraph(logOut);
+        }
+    private:
+        int _size = 128;
+        int _writeHead = 0;
+        std::vector<std::string> _logBuffer = std::vector<std::string>(_size);
+};

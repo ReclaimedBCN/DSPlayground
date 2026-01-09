@@ -31,6 +31,11 @@ set_target_properties(plugin PROPERTIES
 find_library(RTAUDIO_LIBRARY rtaudio)
 
 target_link_libraries(${projectName}
+    # FTXUI
+    PRIVATE ftxui::screen
+    PRIVATE ftxui::dom
+    PRIVATE ftxui::component
+    # RT Audio
     ${RTAUDIO_LIBRARY}
     "-framework CoreAudio"
     "-framework CoreFoundation"
@@ -40,12 +45,6 @@ target_link_libraries(${projectName}
 # -- FTXUI ------------------------
 # add_subdirectory(FTXUI) # Use local FTXUI subdirectory
 find_package(ftxui REQUIRED) # or if ftxui installed system-wide
-
-target_link_libraries(${projectName}
-  PRIVATE ftxui::screen
-  PRIVATE ftxui::dom
-  PRIVATE ftxui::component
-)
 
 # for linter to find FTXUI library files
 target_include_directories(${projectName} PRIVATE
