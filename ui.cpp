@@ -15,13 +15,16 @@
 #include <utility>  // for move
 #include <vector>   // for vector
 
-#include "globals.h"
+#include <thread>
 
-void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams, ftxui::ScreenInteractive& screen)
+#include "globals.h"
+#include "wavParser.h"
+
+void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 {
     using namespace ftxui;
 
-    // auto screen = ScreenInteractive::Fullscreen();
+    auto screen = ScreenInteractive::Fullscreen();
 
     auto Wrap = [](std::string name, Component component) 
     {
@@ -76,7 +79,11 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams, ftxui::Scr
     {
         Button("Reset", [&] { logTest(logBuff); }, ButtonOption::Animated(Color::Orange4)) | xflex_grow,
         Button("Log", [&] { tab_index = 1; }, ButtonOption::Animated(Color::DeepSkyBlue4)) | xflex_grow,
-        Button("Record WAV", [&] { screen.Exit(); }, ButtonOption::Animated(Color::DarkRed)) | xflex_grow,
+        Button("Record WAV", [&] 
+        { 
+            std::thread wavWrite(wavWriteThread);
+            wavWrite.detach(); // run independently
+        }, ButtonOption::Animated(Color::DarkRed)) | xflex_grow,
     });
     buttons = Wrap("Buttons", buttons);
 

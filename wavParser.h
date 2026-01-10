@@ -5,3 +5,4 @@
 
 void writeBytes(std::ofstream& file, int value, int size);
 void writeWav(Globals& globals, LogBuffer& logBuff);
+void wavWriteThread();

@@ -39,7 +39,7 @@ struct PluginModule
 {
     void* handle = nullptr;                 // dynamic library handle returned by dlopen()
     void* state = nullptr;                  // pointer to DSPState instance created by DSP module
-    void* (*create)();                      // function pointer: createDSP()
+    void* (*create)(void*);                 // function pointer: createDSP()
     void (*destroy)(void*);                 // function pointer: destroyDSP()
     void (*process)(void*, float*, int);    // function pointer: processAudio() + floatOut + numFrames
 };

@@ -15,8 +15,6 @@
 #include "wavParser.h"
 #include "ui.h"
 
-#include "ftxui/component/screen_interactive.hpp"
-
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
 // Globals
@@ -25,14 +23,6 @@ unsigned int rtBufferFrames = BUFFERFRAMES; // assign constant to mutable as RtA
 LogBuffer logBuff; // circular buffer for logging standard output
 PluginModule plugin{}; // for filling with hot loaded PluginState pointers
 UiParams uiParams;
-ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
-/*
-ftxui::ScreenInteractive& globalScreen()
-{
-    static ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
-    return screen;
-}
-*/
 
 // -----------------------------------------------------------------------------
 // Load / Reload the Plugin shared library (.dylib) and update the PluginModule struct
@@ -50,7 +40,7 @@ bool loadPlugin(PluginModule& plugin)
 
     // Resolve the symbols (function names) expected from plugin.cpp
         // strings and types must match what's declared in plugin.h and implemented in plugin.cpp
-    auto createFn  = (void* (*)())dlsym(handle, "createPlugin");
+    auto createFn  = (void* (*)(void*))dlsym(handle, "createPlugin");
     auto destroyFn = (void (*)(void*))dlsym(handle, "destroyPlugin");
     auto processFn = (void (*)(void*, float*, int))dlsym(handle, "processPlugin");
 
@@ -68,7 +58,7 @@ bool loadPlugin(PluginModule& plugin)
         plugin.destroy(plugin.state);
     }
     // Create a new PluginState instance with the new module
-    void* newState = createFn();
+    void* newState = createFn(&uiParams);
 
     // Unload the previous shared library (if any) before replacing it
     if (plugin.handle) dlclose(plugin.handle);
@@ -92,7 +82,6 @@ int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStre
 {
     if(userData) // null pointer check
     {
-        // userData is a pointer passed when opening stream in try block below
         // cast userData pointer back to a PluginModule object pointer, same for globals
         PluginModule* plugin = static_cast<PluginModule*>(userData);
 
@@ -119,45 +108,7 @@ void wavWriteThread() { writeWav(globals, logBuff); }
 // -------------------------------------------------------------------------
 // Async function for realtime parameter updates & visualisers
 // -------------------------------------------------------------------------
-void uiThread() 
-{ 
-    drawUi(logBuff, globals, uiParams, screen); 
-}
-
-// -------------------------------------------------------------------------
-// Async function for smoothing TUI parameters
-// -------------------------------------------------------------------------
-void uiParamSmooth() 
-{ 
-    constexpr float smoothing = 0.01f;
-    while (true)
-    {
-        /*
-        // if not reloading
-        if (!globals.reloading.load())
-        {
-            // Cast the untyped void* back into a PluginState typed pointer
-            auto* params = static_cast<PluginState*>(plugin.state);
-
-            float target = uiParams.freq;
-            float current = params->freq.load();
-
-            float smoothed = current + smoothing * (target - current);
-
-            params->freq.store(smoothed);
-        }
-        */
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-}
-/*
-    else if (param == "rec")
-    {
-        std::thread wavWrite(wavWriteThread);
-        wavWrite.detach(); // run independently
-    }
-}
-*/
+void uiThread() { drawUi(logBuff, globals, uiParams); }
 
 // -------------------------------------------------------------------------
 // Async function for reloading plugin code
@@ -176,7 +127,6 @@ void reloadPluginThread()
 // -----------------------------------------------------------------------------
 int main() 
 {
-    std::cout << screen.GetSelection() << std::endl;
     // Initial load, fill PluginModule's placeholders with data from plugin.cpp
     if (!loadPlugin(plugin)) 
     {
