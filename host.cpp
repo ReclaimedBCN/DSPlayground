@@ -2,6 +2,7 @@
 // RtAudio Host with DSP Plugin Hot-Reload:
     // flow: inital load, audio setup, dynamic reload loop, cleanup
 // -----------------------------------------------------------------------------
+#include <cstddef>
 #include <iostream>
 #include <thread>
 #include <filesystem>
@@ -14,6 +15,8 @@
 #include "wavParser.h"
 #include "ui.h"
 
+#include "ftxui/component/screen_interactive.hpp"
+
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
 
 // Globals
@@ -21,6 +24,16 @@ Globals globals;
 unsigned int rtBufferFrames = BUFFERFRAMES; // assign constant to mutable as RtAudio will change value if unsupported by system
 LogBuffer logBuff; // circular buffer for logging standard output
 PluginModule plugin{}; // for filling with hot loaded PluginState pointers
+UiParams uiParams;
+ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
+/*
+ftxui::ScreenInteractive& globalScreen()
+{
+    static ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
+    return screen;
+}
+*/
+void uiThread();
 
 // -----------------------------------------------------------------------------
 // Load / Reload the Plugin shared library (.dylib) and update the PluginModule struct
@@ -51,7 +64,10 @@ bool loadPlugin(PluginModule& plugin)
     }
 
     // If plugin is already loaded, free it's memory before creating a new PluginState object
-    if (plugin.destroy && plugin.state) plugin.destroy(plugin.state);
+    if (plugin.destroy && plugin.state) 
+    {
+        plugin.destroy(plugin.state);
+    }
     // Create a new PluginState instance with the new module
     void* newState = createFn();
 
@@ -104,34 +120,20 @@ void wavWriteThread() { writeWav(globals, logBuff); }
 // -------------------------------------------------------------------------
 // Async function for realtime parameter updates & visualisers
 // -------------------------------------------------------------------------
-void uiThread() { drawUi(logBuff, globals, plugin); }
-    // if (globals.reloading.load() == 0) std::cout << "REPL ready. Try commands like: <parameter> <value>" << std::endl;
-
-    /*
-    // start REPL loop
-    while (true) 
+void uiThread() 
+{ 
+    // ftxui::ScreenInteractive& screen = globalScreen();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    drawUi(logBuff, globals, uiParams, screen); 
+}
+/*
+    else if (param == "rec")
     {
-        // If plugin reloaded, params pointer no-longer valid
-        if (globals.reloading.load() == 1) 
-        {   
-            std::cout << "Plugin reloading, please wait.." << std::endl;
-            break;
-        }
-        // cast plugin.cpp's pointer to a PluginState object
-        PluginState* params = static_cast<PluginState*>(plugin.state);
-
-        if (param == "phase") 
-        {
-            if (params) params->phase.store(value);
-            std::cout << "phase set to " << value << "\n";
-        }
-        else if (param == "rec")
-        {
-            std::thread wavWrite(wavWriteThread);
-            wavWrite.detach(); // run independently
-        }
+        std::thread wavWrite(wavWriteThread);
+        wavWrite.detach(); // run independently
     }
-    */
+}
+*/
 
 // -------------------------------------------------------------------------
 // Async function for reloading plugin code
@@ -150,6 +152,7 @@ void reloadPluginThread()
 // -----------------------------------------------------------------------------
 int main() 
 {
+    std::cout << screen.GetSelection() << std::endl;
     // Initial load, fill PluginModule's placeholders with data from plugin.cpp
     if (!loadPlugin(plugin)) 
     {

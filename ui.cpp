@@ -10,20 +10,18 @@
 
 #include "ftxui/component/mouse.hpp"
 #include <cmath>     // for sin
-#include <functional>  // for ref, reference_wrapper, function
 #include <memory>      // for allocator, shared_ptr, __shared_ptr_access
 #include <string>  // for string, basic_string, char_traits, operator+, to_string
 #include <utility>  // for move
 #include <vector>   // for vector
 
 #include "globals.h"
-#include "plugin.h"         // Shared class for DSP parameters
 
-void drawUi(LogBuffer& logBuff, Globals& globals, PluginModule& plugin)
+void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams, ftxui::ScreenInteractive& screen)
 {
     using namespace ftxui;
 
-    auto screen = ScreenInteractive::Fullscreen();
+    // auto screen = ScreenInteractive::Fullscreen();
 
     auto Wrap = [](std::string name, Component component) 
     {
@@ -59,14 +57,13 @@ void drawUi(LogBuffer& logBuff, Globals& globals, PluginModule& plugin)
     };
 
     // -- Toggles ---------------------------------------------------------------
-    bool checkbox_1_selected = false;
     bool checkbox_2_selected = false;
     bool checkbox_3_selected = false;
     bool checkbox_4_selected = false;
 
     auto toggles = Container::Vertical(
     {
-        Checkbox("checkbox1", &checkbox_1_selected),
+        Checkbox("bypass", &uiParams.bypass),
         Checkbox("checkbox2", &checkbox_2_selected),
         Checkbox("checkbox3", &checkbox_3_selected),
         Checkbox("checkbox4", &checkbox_4_selected),
@@ -84,15 +81,12 @@ void drawUi(LogBuffer& logBuff, Globals& globals, PluginModule& plugin)
     buttons = Wrap("Buttons", buttons);
 
     // -- Sliders -----------------------------------------------------------------
-    int slider_value_1 = 12;
-    int slider_value_2 = 56;
-    int slider_value_3 = 78;
     auto sliders = Container::Vertical(
     {
         // args = name, current value, min, max, increment
-        Slider("Freq:", &slider_value_1, 0, 127, 1) | color(Color::Blue),
-        Slider("Vol:", &slider_value_2, 0, 127, 1) | color(Color::Magenta),
-        Slider("Phase:", &slider_value_3, 0, 127, 1) | color(Color::Yellow),
+        Slider("Freq:", &uiParams.freq, 0.f, 127.f, 1.f) | color(Color::Blue),
+        Slider("Gain:", &uiParams.gain, 0.f, 127.f, 1.f) | color(Color::Magenta),
+        Slider("Phase:", &uiParams.phase, 0.f, 127.f, 1.f) | color(Color::Yellow),
     });
     sliders = Wrap("Sliders", sliders);
 
@@ -100,8 +94,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, PluginModule& plugin)
     {
         return text(
             "freq: " + std::to_string(v1) 
-            + ", Vol: " + std::to_string(v2) 
-            + ", Phase: " + std::to_string(v3)
+            + ", vol: " + std::to_string(v2) 
+            + ", phase: " + std::to_string(v3)
         ) | dim;
     };
 
@@ -205,7 +199,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, PluginModule& plugin)
                 buttons->Render(),
 
                 separator(),
-                paramNumbers(slider_value_1, slider_value_2, slider_value_3),
+                paramNumbers(uiParams.freq, uiParams.gain, uiParams.phase),
 
                 separator(),
                 hbox({

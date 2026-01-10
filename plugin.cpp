@@ -27,7 +27,7 @@ extern "C" void* createPlugin()
 }
 
 // Frees the memory allocated in createPlugin()
-    // Called when the module is about to be unloaded (e.g., before hot-reload)
+    // Called when the module is about to be unloaded (i.e. before hot-reload)
 extern "C" void destroyPlugin(void* state) { delete static_cast<PluginState*>(state); }
 
 // DSP Code: Generates 'numFrames' samples into the 'out' buffer

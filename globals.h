@@ -88,3 +88,11 @@ class LogBuffer
         int _writeHead = 0;
         std::vector<std::string> _logBuffer = std::vector<std::string>(_size);
 };
+
+struct UiParams
+{
+    float freq = 220.f;
+    float gain = 0.1f;
+    float phase = 0.f;
+    bool bypass = 0;
+};
