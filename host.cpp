@@ -33,7 +33,6 @@ ftxui::ScreenInteractive& globalScreen()
     return screen;
 }
 */
-void uiThread();
 
 // -----------------------------------------------------------------------------
 // Load / Reload the Plugin shared library (.dylib) and update the PluginModule struct
@@ -122,9 +121,34 @@ void wavWriteThread() { writeWav(globals, logBuff); }
 // -------------------------------------------------------------------------
 void uiThread() 
 { 
-    // ftxui::ScreenInteractive& screen = globalScreen();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     drawUi(logBuff, globals, uiParams, screen); 
+}
+
+// -------------------------------------------------------------------------
+// Async function for smoothing TUI parameters
+// -------------------------------------------------------------------------
+void uiParamSmooth() 
+{ 
+    constexpr float smoothing = 0.01f;
+    while (true)
+    {
+        /*
+        // if not reloading
+        if (!globals.reloading.load())
+        {
+            // Cast the untyped void* back into a PluginState typed pointer
+            auto* params = static_cast<PluginState*>(plugin.state);
+
+            float target = uiParams.freq;
+            float current = params->freq.load();
+
+            float smoothed = current + smoothing * (target - current);
+
+            params->freq.store(smoothed);
+        }
+        */
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
 }
 /*
     else if (param == "rec")
