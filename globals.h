@@ -44,6 +44,14 @@ struct PluginModule
     void (*process)(void*, float*, int);    // function pointer: processAudio() + floatOut + numFrames
 };
 
+struct UiParams
+{
+    std::atomic<float> freq = 220.f;
+    std::atomic<float> gain = 0.1f;
+    std::atomic<float> phase = 0.f;
+    std::atomic<bool> bypass = 0;
+};
+
 // circular buffer for logging standard output
 class LogBuffer
 {
@@ -89,10 +97,3 @@ class LogBuffer
         std::vector<std::string> _logBuffer = std::vector<std::string>(_size);
 };
 
-struct UiParams
-{
-    float freq = 220.f;
-    float gain = 0.1f;
-    float phase = 0.f;
-    bool bypass = 0;
-};

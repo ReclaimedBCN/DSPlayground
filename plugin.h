@@ -13,59 +13,58 @@ class PluginState
     public:
         PluginState(void* uiParamsPoint) 
         { 
-            uiParams = static_cast<UiParams*>(uiParamsPoint); 
+            _uiParams = static_cast<UiParams*>(uiParamsPoint); 
         }
 
         void process(float* out, int numFrames)
         {
-            // assign atomics to local variables for easier syntax within DSP calculations
-            float phase = this->aPhase.load();
-            float freq = this->aFreq.load();
-            float gain = this->aGain.load();
-            float bypass = this->aBypass.load();
-            int sampleRate = this->aSampleRate.load();
+            // assign ui's atomics to local variables for easier syntax within DSP calculations
+            float bypass = 0;
+            if (_uiParams)
+            {
+                bypass = _uiParams->bypass.load();
+            }
 
             // optional parameter smoothing
             constexpr float smoothing = 0.01f;
-            float targetFreq = freq;
-            float targetGain = gain;
-            if (uiParams) // if valid, assign uiParams to smoothing targets
+            float targetFreq = _freq;
+            float targetGain = _gain;
+            if (_uiParams)
             {
-                targetFreq = uiParams->freq;
-                targetGain = uiParams->gain;
-                bypass = uiParams->bypass;
+                targetFreq = _uiParams->freq;
+                targetGain = _uiParams->gain;
             }
 
             // phase increment per sample
             float twoPi = 2.0f * M_PI;
-            float phaseInc = twoPi * freq / sampleRate;
+            float phaseInc = twoPi * _freq / _sampleRate;
 
             // generate block of audio samples
             for (int i = 0; i < numFrames; ++i) 
             {
                 // optional parameter smoothing
-                freq += smoothing * (targetFreq - freq);
-                gain += smoothing * (targetGain - gain);
+                _freq += smoothing * (targetFreq - _freq);
+                _gain += smoothing * (targetGain - _gain);
 
                 // sine wave oscillator @ amplitude 0.2
-                out[i] = !bypass * gain * sinf(phase);
+                out[i] = !bypass * _gain * sinf(_phase);
                 // advance phase for next sample
-                phase += phaseInc;
+                _phase += phaseInc;
                 // wrap around if phase exceeds 2π
-                if (phase > twoPi) phase -= twoPi;
+                if (_phase > twoPi) _phase -= twoPi;
             }
-            // store any locally changed params
-            this->aFreq.store(freq);
-            this->aPhase.store(phase);
-            this->aBypass.store(phase);
+            // store any changed ui params
+            if (_uiParams) 
+            { 
+                // e.g. uiParams->bypass.store(bypass); 
+            }
         }
     private:
-        std::atomic<float> aFreq = 220.f;
-        std::atomic<float> aGain = 0.1f;
-        std::atomic<float> aPhase = 0.f;
-        std::atomic<bool>  aBypass = 0;
-        std::atomic<int> aSampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
+        int _sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
+        float _phase = 0.f;
+        float _freq = 220.f;
+        float _gain = 0.1f;
 
-        UiParams* uiParams = nullptr;
+        UiParams* _uiParams = nullptr;
 };
 

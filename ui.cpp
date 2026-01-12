@@ -51,6 +51,17 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         });
     };
 
+    // update shared atomic variables when ui changes
+    auto updateAtomicsCheckbox = [&](bool checkbox1, bool checkbox2, bool checkbox3, bool checkbox4)
+    {
+        uiParams.bypass = checkbox1;
+    };
+    auto updateAtomicsSlider = [&](float slider1, float slider2)
+    {
+        uiParams.freq = slider1;
+        uiParams.gain = slider2;
+    };
+
     auto logTest = [](LogBuffer& logBuff)
     {
         Dimensions termDim = Terminal::Size();
@@ -60,18 +71,30 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     };
 
     // -- Toggles ---------------------------------------------------------------
-    bool checkbox_2_selected = false;
-    bool checkbox_3_selected = false;
-    bool checkbox_4_selected = false;
-
+    bool checkbox1 = uiParams.bypass;
+    bool checkbox2 = false;
+    bool checkbox3 = false;
+    bool checkbox4 = false;
     auto toggles = Container::Vertical(
     {
-        Checkbox("bypass", &uiParams.bypass),
-        Checkbox("checkbox2", &checkbox_2_selected),
-        Checkbox("checkbox3", &checkbox_3_selected),
-        Checkbox("checkbox4", &checkbox_4_selected),
+        Checkbox("bypass", &checkbox1),
+        Checkbox("checkbox2", &checkbox2),
+        Checkbox("checkbox3", &checkbox3),
+        Checkbox("checkbox4", &checkbox4),
     });
-    toggles = Wrap("Toggles", toggles);
+
+    // Detect changes
+    auto togglesCallback = ftxui::CatchEvent(toggles,
+        [&](ftxui::Event event) 
+        {
+            bool handled = toggles->OnEvent(event);
+            // If the event changed something, update shared atomic variables
+            if (handled) { updateAtomicsCheckbox(checkbox1, checkbox2, checkbox3, checkbox4); }
+            return handled;
+        }
+    );
+
+    togglesCallback = Wrap("Toggles", togglesCallback);
 
     // -- Buttons -----------------------------------------------------------------
     int tab_index = 0;
@@ -85,24 +108,38 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
             wavWrite.detach(); // run independently
         }, ButtonOption::Animated(Color::DarkRed)) | xflex_grow,
     });
+
     buttons = Wrap("Buttons", buttons);
 
     // -- Sliders -----------------------------------------------------------------
+    float slider1 = uiParams.freq;
+    float slider2 = uiParams.gain;
     auto sliders = Container::Vertical(
     {
         // args = name, current value, min, max, increment
-        Slider("Freq:", &uiParams.freq, 0.f, 127.f, 1.f) | color(Color::Blue),
-        Slider("Gain:", &uiParams.gain, 0.f, 127.f, 1.f) | color(Color::Magenta),
-        Slider("Phase:", &uiParams.phase, 0.f, 127.f, 1.f) | color(Color::Yellow),
+        Slider("Freq:", &slider1, 20.f, 2000.f, 1.f) | color(Color::Blue),
+        Slider("Gain:", &slider2, 0.f, 0.5f, 0.01f) | color(Color::Magenta),
+        // Slider("Phase:", &uiParams.phase, 0.f, 127.f, 1.f) | color(Color::Yellow),
     });
-    sliders = Wrap("Sliders", sliders);
 
-    auto paramNumbers = [](int v1, int v2, int v3)
+    // Detect changes
+    auto slidersCallback = ftxui::CatchEvent(sliders,
+        [&](ftxui::Event event) 
+        {
+            bool handled = sliders->OnEvent(event);
+            // If the event changed something, update shared atomic variables
+            if (handled) { updateAtomicsSlider(slider1, slider2); }
+            return handled;
+        }
+    );
+
+    slidersCallback = Wrap("Sliders", slidersCallback);
+
+    auto sliderReadout = [](float slider1, float slider2)
     {
         return text(
-            "freq: " + std::to_string(v1) 
-            + ", vol: " + std::to_string(v2) 
-            + ", phase: " + std::to_string(v3)
+            "freq: " + std::to_string(slider1) 
+            + ", gain: " + std::to_string(slider2) 
         ) | dim;
     };
 
@@ -190,8 +227,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
     // -- Layout ----------------------
     auto layout = Container::Vertical({
-        toggles,
-        sliders,
+        togglesCallback,
+        slidersCallback,
         buttons,
         plotRenderer,
     });
@@ -199,14 +236,14 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     auto paramsTab = Renderer(layout, [&] {
     return vbox({
                 separator(),
-                toggles->Render(),
+                togglesCallback->Render(),
                 spacer->Render(),
-                sliders->Render(),
+                slidersCallback->Render(),
                 spacer->Render(),
                 buttons->Render(),
 
                 separator(),
-                paramNumbers(uiParams.freq, uiParams.gain, uiParams.phase),
+                sliderReadout(slider1, slider2),
 
                 separator(),
                 hbox({
