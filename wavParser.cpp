@@ -45,7 +45,7 @@ void writeWav(Globals& globals, LogBuffer& logBuff) {
         // scale float samples to unsigned int for writing to .wav file
     auto maxAmplitude = pow(2, RECORDBITDEPTH  - 1) - 1;
         // circular buffer readHead, 1 buffer ahead of writeHead
-    std::size_t readHead = (globals.writeHead + BUFFERFRAMES) % globals.circularOutput.size();
+    std::size_t readHead = (globals.writeHead.load() + BUFFERFRAMES) % globals.circularOutput.size();
     for(int i = 0; i < RECORDFRAMES; i++ ) 
     {
         globals.wavWriteFloats[i] = globals.circularOutput[readHead];

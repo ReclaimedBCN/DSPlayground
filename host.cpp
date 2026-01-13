@@ -93,8 +93,10 @@ int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStre
         // write ouput buffer to circular buffer for extra functions
         for (int i=0; i<numFrames; i++) 
         {
-            globals.circularOutput[globals.writeHead] = static_cast<float*>(outBuffer)[i];
-            globals.writeHead = (globals.writeHead + 1) % globals.circularOutput.size();
+            int writeHead = globals.writeHead.load();
+            globals.circularOutput[writeHead] = static_cast<float*>(outBuffer)[i];
+            int wrapped = (writeHead + 1) % globals.circularOutput.size();
+            globals.writeHead.store(wrapped);
         }
     }
     return 0; // exit code so RtAudio continues streaming

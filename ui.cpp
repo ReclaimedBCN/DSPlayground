@@ -160,7 +160,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
         std::vector<int> ys(plotWidth);
 
-        int a = globals.writeHead - static_cast<int>(plotWidth);
+        int a = globals.writeHead.load() - static_cast<int>(plotWidth);
         int m = globals.circularOutput.size();
         int readHeadStart = ((a % m) + m) % m;
         const int plotHalfHeight = plotHeight * 0.5;
@@ -192,7 +192,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
         std::vector<int> ys(plotWidth);
 
-        int a = globals.writeHead - static_cast<int>(plotWidth);
+        int a = globals.writeHead.load() - static_cast<int>(plotWidth);
         int m = globals.circularOutput.size();
         int readHeadStart = ((a % m) + m) % m;
         const int plotHalfHeight = plotHeight * 0.5;

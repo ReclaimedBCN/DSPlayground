@@ -28,7 +28,7 @@ constexpr float INV60 = 1.f / 60;
 // -----------------------------------------------------------------------------
 struct Globals
 {
-    unsigned int writeHead = 0; // circular buffer write head
+    std::atomic<int> writeHead = 0; // circular buffer write head
     std::atomic<bool> reloading = 0; // flag to prevent double reloads
     std::vector<float> circularOutput = std::vector<float>(RECORDFRAMES + BUFFERFRAMES, 0.f); // circular buffer for output frames, sized with 1 extra buffer
     std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
