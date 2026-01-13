@@ -70,7 +70,7 @@ class LogBuffer
         int getSize() { return _size; }
         ftxui::Element getMiniLog()
         {
-            int size = 16;
+            int size = 4;
             std::string logOut = ""; // clear
             for (int i=1; i<size; i++) 
             {
@@ -92,7 +92,7 @@ class LogBuffer
             return ftxui::paragraph(logOut);
         }
     private:
-        int _size = 128;
+        int _size = 64;
         int _writeHead = 0;
         std::vector<std::string> _logBuffer = std::vector<std::string>(_size);
 };

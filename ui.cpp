@@ -166,7 +166,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
     slidersCallback = Wrap("Sliders", slidersCallback);
 
-    auto sliderReadout = [](float slider1, float slider2)
+
+    auto sliderReadout = [&](float slider1, float slider2)
     {
         return text(
             "freq: " + std::to_string(slider1) 
@@ -302,7 +303,15 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
     });
 
-    auto logTab = Renderer([&] { return logBuff.getFullLog(); });
+    auto logTab = Renderer([&] 
+    { 
+        return vbox
+        ({
+            logBuff.getFullLog(),
+            separatorEmpty(),
+            Ascii(),
+        });
+    });
 
     // TABS
 

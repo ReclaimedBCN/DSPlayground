@@ -184,7 +184,7 @@ int main()
         return 1;
     }
     logBuff.setNewLine("Audio stream running");
-    logBuff.setNewLine("Edit plugin.cpp to hear changes live");
+    logBuff.setNewLine("Edit plugin.h to hear changes live");
 
     // if plugin changes, reload in place without restarting program
     int firstTime = 0;
