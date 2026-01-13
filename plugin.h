@@ -63,7 +63,7 @@ class PluginState
         int _sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
         float _phase = 0.f;
         float _freq = 220.f;
-        float _gain = 0.1f;
+        float _gain = 0.5f;
 
         UiParams* _uiParams = nullptr;
 };

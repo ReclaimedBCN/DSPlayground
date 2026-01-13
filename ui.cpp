@@ -117,8 +117,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     auto sliders = Container::Vertical(
     {
         // args = name, current value, min, max, increment
-        Slider("Freq:", &slider1, 20.f, 2000.f, 1.f) | color(Color::Blue),
-        Slider("Gain:", &slider2, 0.f, 0.5f, 0.01f) | color(Color::Magenta),
+        Slider("Freq:", &slider1, 20.f, 2000.f, 8.f) | color(Color::Blue),
+        Slider("Gain:", &slider2, 0.f, 0.99f, 0.05f) | color(Color::Magenta),
         // Slider("Phase:", &uiParams.phase, 0.f, 127.f, 1.f) | color(Color::Yellow),
     });
 
@@ -160,14 +160,23 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
         std::vector<int> ys(plotWidth);
 
+        int a = globals.writeHead - static_cast<int>(plotWidth);
+        int m = globals.circularOutput.size();
+        int readHeadStart = ((a % m) + m) % m;
+        const int plotHalfHeight = plotHeight * 0.5;
+
         for (int x=0; x<plotWidth; x++) 
         {
-            float dx = float(x - mouse_x);
-            float dy = static_cast<float>(plotHeight) * 0.5;
-            ys[x] = int(dy + 20 * cos(dx * 0.14) + 10 * sin(dx * 0.42));
+            int readHead = (readHeadStart + x) % globals.circularOutput.size();
+            ys[x] = globals.circularOutput[readHead] * plotHalfHeight + plotHalfHeight;
         }
 
-        for (int x=1; x<plotWidth-1; x++) plot.DrawPointLine(x, ys[x], x + 1, ys[x + 1]);
+        screen.RequestAnimationFrame();
+
+        for (int x=1; x<plotWidth-1; x++) 
+        {
+            plot.DrawPointLine(x, ys[x], x + 1, ys[x + 1], Color::PaleGreen1); // PaleGreen1 Aquamarine3 LightGreen Cyan2 PaleGreen3 GreenLight
+        }
 
         return canvas(std::move(plot));
     });
@@ -183,17 +192,22 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
         std::vector<int> ys(plotWidth);
 
+        int a = globals.writeHead - static_cast<int>(plotWidth);
+        int m = globals.circularOutput.size();
+        int readHeadStart = ((a % m) + m) % m;
+        const int plotHalfHeight = plotHeight * 0.5;
+
         for (int x=0; x<plotWidth; x++) 
         {
-            ys[x] = int(30 + 10 * cos(x * 0.2 - mouse_x * 0.05)
-                        + 5 * sin(x * 0.4) +
-                        5 * sin(x * 0.3 - mouse_y * 0.05));
+            int readHead = (readHeadStart + x) % globals.circularOutput.size();
+            ys[x] = fabsf(globals.circularOutput[readHead]) * plotHalfHeight;
         }
 
-        int halfHeight = plotHeight * 0.5;
+        screen.RequestAnimationFrame();
+
         for (int x=0; x<plotWidth; x++) 
         {
-            plot.DrawPointLine(x, halfHeight + ys[x], x, halfHeight - ys[x], Color::Red);
+            plot.DrawPointLine(x, plotHalfHeight + ys[x], x, plotHalfHeight - ys[x], Color::HotPink2); // HotPink2 HotPink Red
         }
 
         return canvas(std::move(plot));
@@ -205,18 +219,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
             filledPlot,
         });
 
-    // Capture the last mouse position
-    auto mousePos = CatchEvent(plots, [&](Event e) {
-    if (e.is_mouse()) 
-    {
-        mouse_x = (e.mouse().x - 1) * 2;
-        mouse_y = (e.mouse().y - 1) * 4;
-    }
-    return false;
-    });
-
     // RENDERER
-    auto plotRenderer = Renderer(mousePos, [&] 
+    auto plotRenderer = Renderer([&] 
     {
         return hbox(
         {
@@ -287,7 +291,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         {
             paramsTab,
             logTab,
-            // Renderer(mousePos, [&] { return renderer_plot_1->Render(); })
+            // Renderer([&] { return renderer_plot_1->Render(); })
             // optionsTab
         },
         &tab_index);

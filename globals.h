@@ -47,7 +47,7 @@ struct PluginModule
 struct UiParams
 {
     std::atomic<float> freq = 220.f;
-    std::atomic<float> gain = 0.1f;
+    std::atomic<float> gain = 0.5f;
     std::atomic<float> phase = 0.f;
     std::atomic<bool> bypass = 0;
 };
