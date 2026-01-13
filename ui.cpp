@@ -20,6 +20,33 @@
 #include "globals.h"
 #include "wavParser.h"
 
+ftxui::Element Ascii() { return ftxui::paragraph(R"(
+▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
+▀▄ █·▀▄.▀·▐█ ▌▪██•  ▐█ ▀█ ██ ·██ ▐███▪▀▄.▀·██▪ ██     ▐█ ▀█▪▐█ ▌▪•█▌▐█
+▐▀▀▄ ▐▀▀▪▄██ ▄▄██▪  ▄█▀▀█ ▐█·▐█ ▌▐▌▐█·▐▀▀▪▄▐█· ▐█▌    ▐█▀▀█▄██ ▄▄▐█▐▐▌
+▐█•█▌▐█▄▄▌▐███▌▐█▌▐▌▐█ ▪▐▌▐█▌██ ██▌▐█▌▐█▄▄▌██. ██     ██▄▪▐█▐███▌██▐█▌
+.▀  ▀ ▀▀▀ ·▀▀▀ .▀▀▀  ▀  ▀ ▀▀▀▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•     ·▀▀▀▀ ·▀▀▀ ▀▀ █▪
+ ______   _______ _______ __                                             __
+|   _  \ |   _   |   _   |  .---.-.--.--.-----.----.-----.--.--.-----.--|  |
+|.  |   \|   1___|.  1   |  |  _  |  |  |  _  |   _|  _  |  |  |     |  _  |
+|.  |    |____   |.  ____|__|___._|___  |___  |__| |_____|_____|__|__|_____|
+|:  1    |:  1   |:  |            |_____|_____|
+|::.. . /|::.. . |::.|
+`------' `-------`---')")
+| color(ftxui::Color::HotPink2);
+}
+
+ftxui::Element ascii() { return ftxui::paragraph(R"(
+ ______   _______ _______ __                                             __
+|   _  \ |   _   |   _   |  .---.-.--.--.-----.----.-----.--.--.-----.--|  |
+|.  |   \|   1___|.  1   |  |  _  |  |  |  _  |   _|  _  |  |  |     |  _  |
+|.  |    |____   |.  ____|__|___._|___  |___  |__| |_____|_____|__|__|_____|
+|:  1    |:  1   |:  |            |_____|_____|
+|::.. . /|::.. . |::.|
+`------' `-------`---')")
+| color(ftxui::Color::HotPink2);
+}
+
 void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 {
     using namespace ftxui;
@@ -71,16 +98,17 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     };
 
     // -- Toggles ---------------------------------------------------------------
-    bool checkbox1 = uiParams.bypass;
-    bool checkbox2 = false;
-    bool checkbox3 = false;
-    bool checkbox4 = false;
-    auto toggles = Container::Vertical(
+    bool toggle1 = uiParams.bypass;
+    bool toggle2 = false;
+    bool toggle3 = false;
+    bool toggle4 = false;
+
+    auto toggles = Container::Horizontal(
     {
-        Checkbox("bypass", &checkbox1),
-        Checkbox("checkbox2", &checkbox2),
-        Checkbox("checkbox3", &checkbox3),
-        Checkbox("checkbox4", &checkbox4),
+        Checkbox("bypass ", &toggle1),
+        Checkbox("toggle2 ", &toggle2),
+        Checkbox("toggle3 ", &toggle3),
+        Checkbox("toggle4 ", &toggle4),
     });
 
     // Detect changes
@@ -89,7 +117,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         {
             bool handled = toggles->OnEvent(event);
             // If the event changed something, update shared atomic variables
-            if (handled) { updateAtomicsCheckbox(checkbox1, checkbox2, checkbox3, checkbox4); }
+            if (handled) { updateAtomicsCheckbox(toggle1, toggle2, toggle3, toggle4); }
             return handled;
         }
     );
@@ -100,13 +128,16 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     int tab_index = 0;
     auto buttons = Container::Horizontal(
     {
-        Button("Reset", [&] { logTest(logBuff); }, ButtonOption::Animated(Color::Orange4)) | xflex_grow,
-        Button("Log", [&] { tab_index = 1; }, ButtonOption::Animated(Color::DeepSkyBlue4)) | xflex_grow,
+        // ButtonOption::Animated(Color::Orange4)
+        // ButtonOption::Animated(Color::DeepSkyBlue4)
+        // ButtonOption::Animated(Color::DarkRed) 
+        Button("Reset", [&] { logTest(logBuff); }, ButtonOption::Ascii()) | xflex_grow,
+        Button("Log", [&] { tab_index = 1; }, ButtonOption::Ascii()) | xflex_grow,
         Button("Record WAV", [&] 
         { 
             std::thread wavWrite(wavWriteThread);
             wavWrite.detach(); // run independently
-        }, ButtonOption::Animated(Color::DarkRed)) | xflex_grow,
+        }, ButtonOption::Ascii()) | xflex_grow,
     });
 
     buttons = Wrap("Buttons", buttons);
@@ -144,10 +175,6 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     };
 
     auto spacer = Spacer();
-
-    // mouse co-ords
-    int mouse_x = 0;
-    int mouse_y = 0;
 
     auto braillePlot = Renderer([&] 
     {
@@ -239,7 +266,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
 
     auto paramsTab = Renderer(layout, [&] {
     return vbox({
-                separator(),
+                // separator(),
                 togglesCallback->Render(),
                 spacer->Render(),
                 slidersCallback->Render(),
@@ -268,6 +295,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
                 }),
                 separator(),
                 logBuff.getMiniLog(),
+                ascii(),
                 // | flex,
             }); 
             // | xflex | size(WIDTH, GREATER_THAN, 40) | borderEmpty;
