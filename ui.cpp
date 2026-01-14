@@ -94,7 +94,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         Dimensions termDim = Terminal::Size();
         const int termWidth = termDim.dimx;
         const int termHeight = termDim.dimy;
-        logBuff.setNewLine("termX" + std::to_string(termWidth) + " termY" + std::to_string(termHeight));
+        logBuff.setNewLine("You can print any value to the console! Here's the terminal dimensions");
+        logBuff.setNewLine("X = " + std::to_string(termWidth) + " Y = " + std::to_string(termHeight));
     };
 
     // -- Toggles ---------------------------------------------------------------
@@ -131,13 +132,13 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         // ButtonOption::Animated(Color::Orange4)
         // ButtonOption::Animated(Color::DeepSkyBlue4)
         // ButtonOption::Animated(Color::DarkRed) 
-        Button("Reset", [&] { logTest(logBuff); }, ButtonOption::Ascii()) | xflex_grow,
-        Button("Log", [&] { tab_index = 1; }, ButtonOption::Ascii()) | xflex_grow,
         Button("Record WAV", [&] 
         { 
             std::thread wavWrite(wavWriteThread);
             wavWrite.detach(); // run independently
         }, ButtonOption::Ascii()) | xflex_grow,
+        Button("Press Me", [&] { logTest(logBuff); }, ButtonOption::Ascii()) | xflex_grow,
+        Button("Close", [&] { screen.Exit(); }, ButtonOption::Ascii()) | xflex_grow,
     });
 
     buttons = Wrap("Buttons", buttons);
@@ -312,8 +313,8 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
                     plotRenderer->Render(),
                 }),
                 separator(),
-                logBuff.getMiniLog(),
-                ascii(),
+                logBuff.getMiniLog() | yflex,
+                ascii() | align_right,
                 // | flex,
             }); 
             // | xflex | size(WIDTH, GREATER_THAN, 40) | borderEmpty;
@@ -324,16 +325,16 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     { 
         return vbox
         ({
-            logBuff.getFullLog(),
+            logBuff.getFullLog() | yflex,
             separatorEmpty(),
-            Ascii(),
+            Ascii() | align_right,
         });
     });
 
     // TABS
 
     std::vector<std::string> tab_entries = {
-        "Params", "Log",
+        "Params", "Full Log",
     };
 
     auto option = MenuOption::HorizontalAnimated();
@@ -353,7 +354,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     // SCREEN & WINDOW RENDER
 
     auto exit_button = Container::Horizontal({
-        Button("Exit", [&] { screen.Exit(); }, ButtonOption::Animated()),
+        Button("Close", [&] { screen.Exit(); }, ButtonOption::Animated()),
     });
 
     auto tab_container = Container::Vertical({
