@@ -143,14 +143,31 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     buttons = Wrap("Buttons", buttons);
 
     // -- Sliders -----------------------------------------------------------------
-    float slider1 = uiParams.freq;
-    float slider2 = uiParams.gain;
+    float sliderVal1 = uiParams.freq;
+    float sliderVal2 = uiParams.gain;
+
+    SliderOption<float> slider1;
+    slider1.value = &sliderVal1;
+    slider1.min = 20.f;
+    slider1.max = 2000.f;
+    slider1.increment = 8.f;
+    slider1.direction = Direction::Right;
+    slider1.color_active = Color::White;
+    slider1.color_inactive = Color::Magenta;
+
+    SliderOption<float> slider2;
+    slider2.value = &sliderVal2;
+    slider2.min = 0.f;
+    slider2.max = 0.99f;
+    slider2.increment = 0.05f;
+    slider2.direction = Direction::Right;
+    slider2.color_active = Color::White;
+    slider2.color_inactive = Color::LightSkyBlue3;
+
     auto sliders = Container::Vertical(
     {
-        // args = name, current value, min, max, increment
-        Slider("Freq:", &slider1, 20.f, 2000.f, 8.f) | color(Color::Blue),
-        Slider("Gain:", &slider2, 0.f, 0.99f, 0.05f) | color(Color::Magenta),
-        // Slider("Phase:", &uiParams.phase, 0.f, 127.f, 1.f) | color(Color::Yellow),
+        Slider(slider1),
+        Slider(slider2),
     });
 
     // Detect changes
@@ -159,7 +176,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         {
             bool handled = sliders->OnEvent(event);
             // If the event changed something, update shared atomic variables
-            if (handled) { updateAtomicsSlider(slider1, slider2); }
+            if (handled) { updateAtomicsSlider(sliderVal1, sliderVal2); }
             return handled;
         }
     );
@@ -275,7 +292,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
                 buttons->Render(),
 
                 separator(),
-                sliderReadout(slider1, slider2),
+                sliderReadout(sliderVal1, sliderVal2),
 
                 separator(),
                 hbox({
