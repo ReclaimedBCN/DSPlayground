@@ -1,5 +1,4 @@
 ![DSPlayground Demo](./assets/DSPlaygroundDemo.gif)
-
 ```
  ______   _______ _______ __                                             __
 |   _  \ |   _   |   _   |  .---.-.--.--.-----.----.-----.--.--.-----.--|  |
@@ -10,38 +9,41 @@
 `------' `-------`---'
 ```
 
-## Why Bother?
+## So, Why Bother?
 
 - Lightweight terminal environment for live coding DSP in C++ without any guard rails or limitations
 - Fast iteration with runtime hot loading of new code with no audio dropouts. Auto-loads DSP code on file save
-- Find sweet spots in real time with the Terminal UI parameter controls
+- Find sweet spots in real time with the Terminal UI parameter controls, preconfigured with parameter smoothing
 - Realtime visual feedback with oscilloscope visualisers for rapid debugging
 - Export .wav recordings for hi-def post-analysis
-- Realtime-safe multithreading preconfigured so you can safely pass data between the worker thread and the audio thread without glitches or data races
-- Use your favorite text editor and a keyboard focussed workflow
-- Prototype DSP code in a simple environment similar to your deployment environment but without the long compile time waits
+- Realtime-safe multithreading so you can safely pass data between the worker thread and audio thread without glitches or data races
+- Use your favorite text editor and enjoy a keyboard focussed workflow
+- Prototype DSP code in a simple environment, similar to your deployment environment but without the long compile time waits
 - No more porting protoypes from another language!
 - Codebase carefully commented so you can take your protoypes as far as you like or just keep them simple, up to you
 
 ## Platform Support
 
 - Built and tested on MacOS with Apple Silicon
-- Should be Linux friendly but completely untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution.
+- Should be Linux friendly but currently untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution.
 - Windows not currently supported (if you’d like to help with this we’d love to hear from you)
 
 ## Dependencies / Recommendations
 
-- You’ll need an existing C++ build environment, if you’re programming in C++ you probably already have these
+1. You’ll need an existing C++ build environment, if you’re programming in C++ you probably already have these
 	- GCC / Clang
 	- CMake
 	- Make
-- Submodules
-    - RtAudio for handling interface with soundcard for the audio callback
+2. Included submodules
+    - RtAudio for interfacing with your soundcard for the audio callback
     - FTXUI for the terminal UI
-        - If you’re still using the prebundled Terminal app it’s time for an upgrade!
-        - You'll want a modern one for proper display rendering (among many other things)
-        - Popular modern terminal emulators = Ghostty, Alacritty
-- Any text editor
+
+> [!TIP]
+> - If you’re still using the built-in Terminal app it’s time for an upgrade!
+> - You'll want a modern one for proper display rendering (among many other things)
+> - Popular modern terminal emulators = Ghostty, Alacritty
+
+3. Any text editor
 	- Neovim + Tmux is a pretty killer workflow though!
 
 ## Installation
@@ -50,7 +52,9 @@
 git clone --recursive https://github.com/ReclaimedBCN/DSPlayground.git
 ```
 
->> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean much faster build times (important if you want fast hot-reloads) but the choice is up to you.
+
+> [!IMPORTANT] 
+> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean much faster build times (important if you want fast hot-reloads) but the choice is up to you.
 
 ### Building locally (the default)
 
@@ -81,7 +85,8 @@ cmake --build build --parallel
 
 ## Usage
 
-Before running DSPlayground you'll want to turn your system's volume all the way down. RtAudio's output can be quite loud.
+> [!CAUTION]
+> Before running DSPlayground you'll want to turn your system's volume all the way down. RtAudio's output can be quite loud.
 
 ```bash
 # start DSPlayground from the repo's root directory
@@ -89,28 +94,30 @@ Before running DSPlayground you'll want to turn your system's volume all the way
 ```
 
 1. Slowly turn up your volume
-2. Now you can navigate the UI with your keyboard. Vim keybindings, arrow keys and enter and supported. Or if you prefer, you can use your mouse too.
+2. Now you can navigate the UI with your keyboard. Vim keybindings (h,j,k,l), arrow keys and enter and supported. Or if you prefer, you can use your mouse too.
 3. Use the controls to change the parameters of the audio engine in real-time
 4. Open up plugin.h in a text editor
 5. Make changes to the algorithm, when you save the file the DSP code will be hot reloaded.
 
+> [!TIP]
 > FYI, the default values of the UI sliders determine the initial state of the parameters that they control when you first run DSPlayground.
 These can be changed in the globals.h file in the UiParams struct. You will need to recompile the binary (not the whole project) for this to take affect.
 
 ```bash
 # recompile the binary when making changes to source files other than plugin.h
-# from the repo's root directory
+# from DSPlayground's root directory
 cmake --build build --parallel
 
 # rebuild the project when making changes to the project structure
-    # e.g. adding files / changing CMakeLists.txt
-# from the repo's root directory
+    # e.g. adding files, changing CMakeLists.txt
+# from DSPlayground's root directory
 cmake -S . -B build
 cmake --build build --parallel
 ```
 
 Have fun and experiment away!
 
+> [!TIP]
 > p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
 
 ## Future  Plans
@@ -127,7 +134,7 @@ Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Bo
 
 ## License
 
-The DSPlayground license is similar to the MIT License. Please see [LICENSE](LICENSE).
+DSPlayground's license is similar to the MIT License. Please see [LICENSE](LICENSE).
 
 ### Disclaimer
 
