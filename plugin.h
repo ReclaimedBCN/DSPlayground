@@ -26,7 +26,7 @@ class PluginState
             }
 
             // optional parameter smoothing
-            constexpr float smoothing = 0.01f;
+            constexpr float smoothing = 0.005f;
             float targetFreq = _freq;
             float targetGain = _gain;
             if (_uiParams)
@@ -39,7 +39,7 @@ class PluginState
             float twoPi = 2.0f * M_PI;
             float phaseInc = twoPi * _freq / _sampleRate;
 
-            // generate block of audio samples
+            // generate interleaved stereo block of audio samples
             for (int i = 0; i < numFrames; ++i) 
             {
                 // optional parameter smoothing
@@ -47,7 +47,10 @@ class PluginState
                 _gain += smoothing * (targetGain - _gain);
 
                 // sine wave oscillator @ amplitude 0.2
-                out[i] = !bypass * _gain * sinf(_phase);
+                float output = !bypass * _gain * sinf(_phase);
+                out[2*i+0] = output; // Left channel
+                out[2*i+1] = output; // Right channel
+
                 // advance phase for next sample
                 _phase += phaseInc;
                 // wrap around if phase exceeds 2π

@@ -148,7 +148,7 @@ int main()
     // Configure output stream parameters
     RtAudio::StreamParameters streamParams;
     streamParams.deviceId = dac.getDefaultOutputDevice(); // choose default output
-    streamParams.nChannels = 1;                           // mono output
+    streamParams.nChannels = 2;                           // stereo output
 
     // start UI (and potentially wavWriter) in background
     std::thread ui(uiThread);
