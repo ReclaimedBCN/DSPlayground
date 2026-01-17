@@ -1,3 +1,5 @@
+![DSPlayground Demo](./assets/DSPlaygroundDemo.gif)
+
 ```
  ______   _______ _______ __                                             __
 |   _  \ |   _   |   _   |  .---.-.--.--.-----.----.-----.--.--.-----.--|  |
@@ -7,7 +9,6 @@
 |::.. . /|::.. . |::.|
 `------' `-------`---'
 ```
-![DSPlayground Demo](./assets/DSPlaygroundDemo.gif)
 
 ## Why Bother?
 
@@ -25,7 +26,7 @@
 ## Platform Support
 
 - Built and tested on MacOS with Apple Silicon
-- Considerations for Linux anomalies included (untested though!)
+- Should be Linux friendly but completely untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution.
 - Windows not currently supported (if you’d like to help with this we’d love to hear from you)
 
 ## Dependencies / Recommendations
@@ -43,12 +44,10 @@
 - Any text editor
 	- Neovim + Tmux is a pretty killer workflow though!
 
----
-
 ## Installation
 
 ```bash
-git clone --recursive "INSERT GITHUB LINK"
+git clone --recursive https://github.com/ReclaimedBCN/DSPlayground.git
 ```
 
 > You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean faster build times but the choice is up to you.
@@ -113,11 +112,9 @@ Have fun and experiment away!
 
 p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
 
----
-
 ## Future  Plans
 
-- [ ] Linux support
+- [ ] Linux testing
 - [ ] MIDI support
 - [ ] Windows support
 
@@ -131,16 +128,6 @@ Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Bo
 
 The DSPlayground license is similar to the MIT License. Please see [LICENSE](LICENSE).
 
-```
-▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
-▀▄ █·▀▄.▀·▐█ ▌▪██•  ▐█ ▀█ ██ ·██ ▐███▪▀▄.▀·██▪ ██     ▐█ ▀█▪▐█ ▌▪•█▌▐█
-▐▀▀▄ ▐▀▀▪▄██ ▄▄██▪  ▄█▀▀█ ▐█·▐█ ▌▐▌▐█·▐▀▀▪▄▐█· ▐█▌    ▐█▀▀█▄██ ▄▄▐█▐▐▌
-▐█•█▌▐█▄▄▌▐███▌▐█▌▐▌▐█ ▪▐▌▐█▌██ ██▌▐█▌▐█▄▄▌██. ██     ██▄▪▐█▐███▌██▐█▌
-.▀  ▀ ▀▀▀ ·▀▀▀ .▀▀▀  ▀  ▀ ▀▀▀▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•     ·▀▀▀▀ ·▀▀▀ ▀▀ █▪
-
-```
-Copyright 2026 Reclaimed BCN. All rights reserved.
-
 ### Disclaimer
 
 The software is provided "as is", without warranty of any kind, express or
@@ -151,3 +138,12 @@ liability, whether in an action of contract, tort or otherwise, arising
 from, out of or in connection with the software or the use or other
 dealings in the software.
 
+```
+▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
+▀▄ █·▀▄.▀·▐█ ▌▪██•  ▐█ ▀█ ██ ·██ ▐███▪▀▄.▀·██▪ ██     ▐█ ▀█▪▐█ ▌▪•█▌▐█
+▐▀▀▄ ▐▀▀▪▄██ ▄▄██▪  ▄█▀▀█ ▐█·▐█ ▌▐▌▐█·▐▀▀▪▄▐█· ▐█▌    ▐█▀▀█▄██ ▄▄▐█▐▐▌
+▐█•█▌▐█▄▄▌▐███▌▐█▌▐▌▐█ ▪▐▌▐█▌██ ██▌▐█▌▐█▄▄▌██. ██     ██▄▪▐█▐███▌██▐█▌
+.▀  ▀ ▀▀▀ ·▀▀▀ .▀▀▀  ▀  ▀ ▀▀▀▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•     ·▀▀▀▀ ·▀▀▀ ▀▀ █▪
+
+```
+Copyright 2026 Reclaimed BCN. All rights reserved.
