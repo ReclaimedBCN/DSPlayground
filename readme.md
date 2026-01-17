@@ -7,6 +7,7 @@
 |::.. . /|::.. . |::.|
 `------' `-------`---'
 ```
+![DSPlayground Demo](./assets/DSPlaygroundDemo.gif)
 
 ## Why Bother?
 
@@ -108,9 +109,9 @@ cmake -S . -B build
 cmake --build build --parallel
 ```
 
-Long live the terminal. Have fun and make some noise!
+Have fun and experiment away!
 
-p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice.
+p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
 
 ---
 
