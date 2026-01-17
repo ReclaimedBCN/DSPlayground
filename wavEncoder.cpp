@@ -1,3 +1,6 @@
+// Copyright 2026 Reclaimed BCN. All rights reserved.
+// Use of this source code is governed by the license found in the LICENSE file.
+
 // thanks to @Thrifleganger !
 // https://github.com/Thrifleganger/audio-programming-youtube
 

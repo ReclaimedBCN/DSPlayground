@@ -81,7 +81,7 @@ cmake --build build --parallel
 
 ## Usage
 
-- Before running DSPlayground you'll want to turn your system's volume all the way down. RtAudio's output can be quite loud.
+Before running DSPlayground you'll want to turn your system's volume all the way down. RtAudio's output can be quite loud.
 
 ```bash
 # start DSPlayground from the repo's root directory
@@ -110,6 +110,8 @@ cmake --build build --parallel
 
 Long live the terminal. Have fun and make some noise!
 
+p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice.
+
 ---
 
 ## Future  Plans
@@ -122,10 +124,11 @@ If you’d like to help with any of the above we are open to pull requests and c
 
 ## Thanks
 
-Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Both amazing projects that deserve some recognition. Also thanks to @Thrifleganger for the .wav codec tutorial!
+Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Both amazing projects that deserve some recognition. Also thanks to @Thrifleganger for the .wav encoding tutorial!
 
 ## License
 
+The DSPlayground license is similar to the MIT License. Please see [LICENSE](LICENSE).
 
 ```
 ▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
@@ -135,6 +138,8 @@ Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Bo
 .▀  ▀ ▀▀▀ ·▀▀▀ .▀▀▀  ▀  ▀ ▀▀▀▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•     ·▀▀▀▀ ·▀▀▀ ▀▀ █▪
 
 ```
+Copyright 2026 Reclaimed BCN. All rights reserved.
+
 ### Disclaimer
 
 The software is provided "as is", without warranty of any kind, express or

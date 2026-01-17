@@ -1,3 +1,6 @@
+// Copyright 2026 Reclaimed BCN. All rights reserved.
+// Use of this source code is governed by the license found in the LICENSE file.
+
 // -----------------------------------------------------------------------------
 // RtAudio Host with DSP Plugin Hot-Reload:
     // flow: inital load, audio setup, dynamic reload loop, cleanup
@@ -12,7 +15,7 @@
 #include "RtAudio.h"        // RtAudio for cross-platform audio I/O
 
 #include "globals.h"
-#include "wavParser.h"
+#include "wavEncoder.h"
 #include "ui.h"
 
 static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free

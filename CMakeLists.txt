@@ -1,3 +1,5 @@
+# Copyright 2026 Reclaimed BCN. All rights reserved.
+# Use of this source code is governed by the license found in the LICENSE file.
 cmake_minimum_required(VERSION 3.16)
 
 set(projectName "DSPlayground")
@@ -16,7 +18,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON) # Enable PIC for shared libs
 # -- Host executables ----------------
 add_executable(${projectName}
     host.cpp
-    wavParser.cpp
+    wavEncoder.cpp
     ui.cpp
 )
 

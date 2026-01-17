@@ -1,3 +1,6 @@
+// Copyright 2026 Reclaimed BCN. All rights reserved.
+// Use of this source code is governed by the license found in the LICENSE file.
+
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/component_options.hpp"
@@ -18,7 +21,7 @@
 #include <thread>
 
 #include "globals.h"
-#include "wavParser.h"
+#include "wavEncoder.h"
 
 ftxui::Element Ascii() { return ftxui::paragraph(R"(
 ▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
