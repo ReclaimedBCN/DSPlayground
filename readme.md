@@ -18,10 +18,10 @@
 - Realtime visual feedback with oscilloscope visualisers for rapid debugging
 - Export .wav recordings for hi-def post-analysis
 - Realtime-safe multithreading preconfigured so you can safely pass data between the worker thread and the audio thread without glitches or data races
-- Use your favorite text editor
-- Prototype DSP code in a simple sandboxed environment similar to your deployment environment but without the long compile time waits
+- Use your favorite text editor and a keyboard focussed workflow
+- Prototype DSP code in a simple environment similar to your deployment environment but without the long compile time waits
 - No more porting protoypes from another language!
-- Codebase carefully commented so you can take your protoypes as far as you like or keep them simple, up to you
+- Codebase carefully commented so you can take your protoypes as far as you like or just keep them simple, up to you
 
 ## Platform Support
 
@@ -50,31 +50,31 @@
 git clone --recursive https://github.com/ReclaimedBCN/DSPlayground.git
 ```
 
-> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean faster build times but the choice is up to you.
+>> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean much faster build times (important if you want fast hot-reloads) but the choice is up to you.
 
 ### Building locally (the default)
 
 ```bash
-# build from DSPlayground repo root directory
+# build from DSPlayground's root directory
 cmake -S . -B build
 cmake --build build --parallel
 ```
 
 ### Installing system-wide
 
-- In the `external/` directory, enter the RtAudio and FTXUI submodule folders
-- Read their README files / documentation and install them system-wide based on their instructions. Both of them support CMake so you can run cmake commands from their repo directories
-- Now return to the DSPlayground repo directory and edit the CMakeLists.txt to enable the options below
+1. In the `external/` directory, enter the RtAudio and FTXUI submodule folders
+2. Read their README files / documentation and install them system-wide based on their instructions. Both of them support CMake so you can run CMake commands from their repo directories
+3. Now return to the DSPlayground repo directory and edit the CMakeLists.txt to enable the options below
 
 ```cmake
 option(USE_SYSTEM_RTAUDIO "Use system-wide install of rtaudio" ON)
 option(USE_SYSTEM_FTXUI "Use system-wide install of FTXUI" ON)
 ```
 
-- Build DSPlayground
+4. Build DSPlayground
 
 ```bash
-# build from DSPlayground repo root directory
+# build from DSPlayground's root directory
 cmake -S . -B build
 cmake --build build --parallel
 ```
@@ -88,12 +88,13 @@ Before running DSPlayground you'll want to turn your system's volume all the way
 ./run.sh
 ```
 
-- Now you can navigate the UI with your keyboard. Vim keybindings, arrow keys and enter and supported. Or if you prefer, you can use your mouse too.
-- Use the controls to change the parameters of the audio engine in real-time
-- Open up plugin.h in a text editor
-- Make changes to the algorithm, when you save the file the DSP code will be hot reloaded.
+1. Slowly turn up your volume
+2. Now you can navigate the UI with your keyboard. Vim keybindings, arrow keys and enter and supported. Or if you prefer, you can use your mouse too.
+3. Use the controls to change the parameters of the audio engine in real-time
+4. Open up plugin.h in a text editor
+5. Make changes to the algorithm, when you save the file the DSP code will be hot reloaded.
 
-FYI, the default values of the UI sliders determine the initial state of the parameters that they control when you first run DSPlayground.
+> FYI, the default values of the UI sliders determine the initial state of the parameters that they control when you first run DSPlayground.
 These can be changed in the globals.h file in the UiParams struct. You will need to recompile the binary (not the whole project) for this to take affect.
 
 ```bash
@@ -110,7 +111,7 @@ cmake --build build --parallel
 
 Have fun and experiment away!
 
-p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
+> p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
 
 ## Future  Plans
 
