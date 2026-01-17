@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 set(projectName "DSPlayground")
 project(${projectName})
 
-option(USE_SYSTEM_RTAUDIO "Use system-wide install of rtaudio" ON)
-option(USE_SYSTEM_FTXUI "Use system-wide install of FTXUI" ON)
+option(USE_SYSTEM_RTAUDIO "Use system-wide install of rtaudio" OFF)
+option(USE_SYSTEM_FTXUI "Use system-wide install of FTXUI" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
