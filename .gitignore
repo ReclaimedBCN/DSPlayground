@@ -2,5 +2,4 @@ build/
 .DS_Store
 .cache
 recording.wav
-FTXUI/
-FTXUI
+external/
