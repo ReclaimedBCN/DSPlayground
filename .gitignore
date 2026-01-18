@@ -2,3 +2,4 @@ build/
 .DS_Store
 .cache
 recording.wav
+__cmake_systeminformation/

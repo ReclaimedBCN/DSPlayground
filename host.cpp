@@ -1,18 +1,14 @@
 // Copyright 2026 Reclaimed BCN. All rights reserved.
 // Use of this source code is governed by the license found in the LICENSE file.
 
-// -----------------------------------------------------------------------------
-// RtAudio Host with DSP Plugin Hot-Reload:
-    // flow: inital load, audio setup, dynamic reload loop, cleanup
-// -----------------------------------------------------------------------------
 #include <cstddef>
 #include <iostream>
 #include <thread>
 #include <filesystem>
 #include <chrono>
-#include <dlfcn.h>          // for dlopen, dlsym, dlclose
+#include <dlfcn.h>
 
-#include "RtAudio.h"        // RtAudio for cross-platform audio I/O
+#include "RtAudio.h"
 
 #include "globals.h"
 #include "wavEncoder.h"
@@ -34,8 +30,7 @@ bool loadPlugin(PluginModule& plugin)
 {
     // Try to open the shared library file
     void* handle = dlopen(PLUGINPATH, RTLD_NOW);
-    // null pointer catch
-    if (!handle) 
+    if (!handle) // null ptr check
     {
         std::cerr << "Failed to load Plugin: " << dlerror() << "\n";
         return false;
@@ -78,8 +73,7 @@ bool loadPlugin(PluginModule& plugin)
 }
 
 // -------------------------------------------------------------------------
-// RtAudio callback function
-    // Called by RtAudio whenever it needs more audio samples
+// RtAudio callback, called by RtAudio whenever it needs more audio samples
 // -------------------------------------------------------------------------
 int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStreamStatus, void* userData)
 {
@@ -116,8 +110,7 @@ void wavWriteThread() { writeWav(globals, logBuff); }
 void uiThread() { drawUi(logBuff, globals, uiParams); }
 
 // -------------------------------------------------------------------------
-// Async function for reloading plugin code
-    // Called whenver plugin.cpp file is changed
+// Async function for reloading plugin code when plugin.h file is changed
 // -------------------------------------------------------------------------
 void reloadPluginThread()
 {
@@ -140,8 +133,7 @@ int main()
     }
 
     // Setup RtAudio output stream
-    RtAudio dac; // RtAudio output DAC for interfacing with sound card
-
+    RtAudio dac;
     if (dac.getDeviceCount() < 1) 
     {
         std::cerr << "No audio devices found!\n";
@@ -150,7 +142,7 @@ int main()
 
     // Configure output stream parameters
     RtAudio::StreamParameters streamParams;
-    streamParams.deviceId = dac.getDefaultOutputDevice(); // choose default output
+    streamParams.deviceId = dac.getDefaultOutputDevice(); // default output
     streamParams.nChannels = 2;                           // stereo output
 
     // start UI (and potentially wavWriter) in background
@@ -193,7 +185,7 @@ int main()
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
-    // Check plugin.cpp file for changes every 300 ms
+    // Periodically check plugin.h file for changes
     while (true) 
     {
         auto currentTime = std::filesystem::last_write_time(PLUGINSOURCE);
@@ -216,9 +208,8 @@ int main()
             std::thread reload(reloadPluginThread);
             reload.detach(); // don't block main thread whilst reloading
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-
     // Safety clean up (usually unreachable)
     dac.closeStream();
 }

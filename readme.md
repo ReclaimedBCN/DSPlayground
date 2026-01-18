@@ -28,14 +28,14 @@
 - Should be Linux friendly but currently untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution.
 - Windows not currently supported (if you’d like to help with this we’d love to hear from you)
 
-## Dependencies / Recommendations
+## Dependencies
 
 1. You’ll need an existing C++ build environment, if you’re programming in C++ you probably already have these
 	- GCC / Clang
 	- CMake
 	- Make
 2. Included submodules
-    - RtAudio for interfacing with your soundcard for the audio callback
+    - RtAudio for interfacing with your soundcard
     - FTXUI for the terminal UI
 
 > [!TIP]
@@ -100,7 +100,7 @@ cmake --build build --parallel
 5. Make changes to the algorithm, when you save the file the DSP code will be hot reloaded.
 
 > [!TIP]
-> FYI, the default values of the UI sliders determine the initial state of the parameters that they control when you first run DSPlayground.
+> FYI the default values of the UI sliders determine the initial state of the parameters that they control when you first run DSPlayground.
 These can be changed in the globals.h file in the UiParams struct. You will need to recompile the binary (not the whole project) for this to take affect.
 
 ```bash
@@ -118,7 +118,7 @@ cmake --build build --parallel
 Have fun and experiment away!
 
 > [!TIP]
-> p.s. To leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
+> p.s. to leave the DSPlayground, use the close buttons to close the UI and `ctrl + c` to end the audio stream. Or just `ctrl + c` twice. Long live the terminal!
 
 ## Future  Plans
 
@@ -146,12 +146,9 @@ liability, whether in an action of contract, tort or otherwise, arising
 from, out of or in connection with the software or the use or other
 dealings in the software.
 
-```
-▄▄▄  ▄▄▄ . ▄▄· ▄▄▌   ▄▄▄· ▪  • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄      ▄▄▄▄·  ▄▄·  ▐ ▄
-▀▄ █·▀▄.▀·▐█ ▌▪██•  ▐█ ▀█ ██ ·██ ▐███▪▀▄.▀·██▪ ██     ▐█ ▀█▪▐█ ▌▪•█▌▐█
-▐▀▀▄ ▐▀▀▪▄██ ▄▄██▪  ▄█▀▀█ ▐█·▐█ ▌▐▌▐█·▐▀▀▪▄▐█· ▐█▌    ▐█▀▀█▄██ ▄▄▐█▐▐▌
-▐█•█▌▐█▄▄▌▐███▌▐█▌▐▌▐█ ▪▐▌▐█▌██ ██▌▐█▌▐█▄▄▌██. ██     ██▄▪▐█▐███▌██▐█▌
-.▀  ▀ ▀▀▀ ·▀▀▀ .▀▀▀  ▀  ▀ ▀▀▀▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•     ·▀▀▀▀ ·▀▀▀ ▀▀ █▪
+<p align="center">
+  <img src="./assets/ReclaimedBCNLogo.jpeg" width="600">
+  <br>
+  Copyright 2026 Reclaimed BCN. All rights reserved.
+</p>
 
-```
-Copyright 2026 Reclaimed BCN. All rights reserved.

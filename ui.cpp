@@ -11,13 +11,11 @@
 #include "ftxui/dom/canvas.hpp"
 #include "ftxui/screen/color.hpp"
 
-#include "ftxui/component/mouse.hpp"
-#include <cmath>     // for sin
-#include <memory>      // for allocator, shared_ptr, __shared_ptr_access
-#include <string>  // for string, basic_string, char_traits, operator+, to_string
-#include <utility>  // for move
-#include <vector>   // for vector
-
+#include <cmath>
+// #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <thread>
 
 #include "globals.h"
@@ -132,8 +130,6 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
     int tab_index = 0;
     auto buttons = Container::Horizontal(
     {
-        // ButtonOption::Animated(Color::Orange4)
-        // ButtonOption::Animated(Color::DeepSkyBlue4)
         // ButtonOption::Animated(Color::DarkRed) 
         Button("Record WAV", [&] 
         { 

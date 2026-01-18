@@ -1,16 +1,15 @@
 // Copyright 2026 Reclaimed BCN. All rights reserved.
 // Use of this source code is governed by the license found in the LICENSE file.
 
-// -------------------------------
-// Shared class for DSP Parameters
-// -------------------------------
 #pragma once
 
 #include <atomic>
 #include <cmath> // for sinf() and M_PI
 #include "globals.h"
 
-// Struct to hold all info about the per-instance DSP state
+// -------------------------------------------
+// Shared class to hold per-instance DSP State 
+// -------------------------------------------
 class PluginState
 {
     public:
@@ -27,7 +26,6 @@ class PluginState
             {
                 bypass = _uiParams->bypass.load();
             }
-
             // optional parameter smoothing
             constexpr float smoothing = 0.005f;
             float targetFreq = _freq;
