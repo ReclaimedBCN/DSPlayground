@@ -148,7 +148,7 @@ dealings in the software.
 
 <p align="center">
 	<br>
-	<img src="./assets/ReclaimedBCNLogo.jpeg" width="125">
+	<img src="./assets/ReclaimedBCNLogo.jpeg" width="100">
 	<br><br>
 	Copyright 2026 Reclaimed BCN. All rights reserved.
 </p>
