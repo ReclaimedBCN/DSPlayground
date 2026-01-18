@@ -147,8 +147,8 @@ from, out of or in connection with the software or the use or other
 dealings in the software.
 
 <p align="center">
-  <img src="./assets/ReclaimedBCNLogo.jpeg" width="600">
-  <br>
-  Copyright 2026 Reclaimed BCN. All rights reserved.
+	<br>
+	<img src="./assets/ReclaimedBCNLogo.jpeg" width="125">
+	<br><br>
+	Copyright 2026 Reclaimed BCN. All rights reserved.
 </p>
-
