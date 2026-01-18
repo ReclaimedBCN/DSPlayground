@@ -54,7 +54,7 @@ git clone --recursive https://github.com/ReclaimedBCN/DSPlayground.git
 
 
 > [!IMPORTANT] 
-> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean much faster build times (important if you want fast hot-reloads) but the choice is up to you.
+> You can either choose to install RtAudio and FTXUI on your system or build the libraries locally in their submodule folders. Installing system-wide will mean much faster build times (key if you want fast hot-reloads) but the choice is up to you.
 
 ### Building locally (the default)
 
@@ -130,7 +130,7 @@ If you’d like to help with any of the above we are open to pull requests and c
 
 ## Thanks
 
-Big thanks to @thestk and @ArthurSonzogni for RtAudio and FTXUI respectively. Both amazing projects that deserve some recognition. Also thanks to @Thrifleganger for the .wav encoding tutorial!
+Big thanks to [thestk](https://github.com/thestk) and [ArthurSonzogni](https://github.com/ArthurSonzogni) for [RtAudio](https://github.com/thestk/rtaudio) and [FTXUI](https://github.com/ArthurSonzogni/FTXUI) respectively. Both amazing projects that deserve some recognition. Also thanks to [Thrifleganger](https://github.com/Thrifleganger) for the .wav encoding tutorial!
 
 ## License
 
