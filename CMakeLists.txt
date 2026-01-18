@@ -35,6 +35,10 @@ target_include_directories(${projectName} PRIVATE
     external/rtaudio
     external/FTXUI/include
 )
+target_include_directories(plugin PRIVATE
+    external/rtaudio
+    external/FTXUI/include
+)
 
 if(USE_SYSTEM_RTAUDIO)
     find_library(RTAUDIO_LIBRARY rtaudio) # Use system-wide rtaudio installation 
