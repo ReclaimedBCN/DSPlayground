@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <chrono>
 #include <dlfcn.h>
+#include <string>
 
 #include "RtAudio.h"
 
@@ -23,13 +24,28 @@ LogBuffer logBuff; // circular buffer for logging standard output
 PluginModule plugin{}; // for filling with hot loaded PluginState pointers
 UiParams uiParams;
 
+// Get platform-specific shared library filename
+std::string sharedLibraryName(const std::string& baseName)
+{
+#if defined(_WIN32) // Windows
+    return baseName + ".dll";
+#elif defined(__APPLE__) && defined(__MACH__) // macOS
+    return "lib" + baseName + ".dylib";
+#elif defined(__linux__) // Linux
+    return "lib" + baseName + ".so";
+#else
+    #error Unsupported platform
+#endif
+}
+
 // -----------------------------------------------------------------------------
 // Load / Reload the Plugin shared library (.dylib) and update the PluginModule struct
 // -----------------------------------------------------------------------------
 bool loadPlugin(PluginModule& plugin) 
 {
+    std::string pluginPath = "./build/plugins/" + sharedLibraryName("plugin");
     // Try to open the shared library file
-    void* handle = dlopen(PLUGINPATH, RTLD_NOW);
+    void* handle = dlopen(pluginPath.c_str(), RTLD_NOW);
     if (!handle) // null ptr check
     {
         std::cerr << "Failed to load Plugin: " << dlerror() << "\n";
