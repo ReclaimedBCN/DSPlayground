@@ -25,8 +25,8 @@
 ## Platform Support
 
 - Built and tested on MacOS with Apple Silicon
-- Should be Linux friendly but currently untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution.
-- Windows not currently supported (if you’d like to help with this we’d love to hear from you)
+- Should now be Linux & Windows friendly but still untested! You'll need to tweak the CMakeLists.txt if you're looking to install system-wide. Swap out the Apple frameworks for the relevant ones for your distribution / operating system.
+- If you’d like to help with Linux or Windows testing we’d love to hear from you
 
 ## Dependencies
 
@@ -123,8 +123,8 @@ Have fun and experiment away!
 ## Future  Plans
 
 - [ ] Linux testing
+- [ ] Windows testing
 - [ ] MIDI support
-- [ ] Windows support
 
 If you’d like to help with any of the above we are open to pull requests and collaboration :)
 

@@ -38,9 +38,9 @@ std::string sharedLibraryName(const std::string& baseName)
 #endif
 }
 
-// -----------------------------------------------------------------------------
-// Load / Reload the Plugin shared library (.dylib) and update the PluginModule struct
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
+// Load / Reload the Plugin shared library (.dylib/.so/.dll) and update the PluginModule struct
+// ----------------------------------------------------------------------------------------------
 bool loadPlugin(PluginModule& plugin) 
 {
     std::string pluginPath = "./build/plugins/" + sharedLibraryName("plugin");
