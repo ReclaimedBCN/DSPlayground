@@ -108,7 +108,7 @@ These can be changed in the globals.h file in the UiParams struct. You will need
 # from DSPlayground's root directory
 cmake --build build --parallel
 
-# rebuild the project when making changes to the project structure
+# reconfigure the project when making changes to the project structure
     # e.g. adding files, changing CMakeLists.txt
 # from DSPlayground's root directory
 cmake -S . -B build

@@ -8,7 +8,7 @@
 #include "globals.h"
 
 // -------------------------------------------
-// Shared class to hold per-instance DSP State 
+// Shared class for holding plugin's DSP State 
 // -------------------------------------------
 class PluginState
 {
@@ -40,14 +40,14 @@ class PluginState
             float twoPi = 2.0f * M_PI;
             float phaseInc = twoPi * _freq / _sampleRate;
 
-            // generate interleaved stereo block of audio samples
-            for (int i = 0; i < numFrames; ++i) 
+            // generate interleaved stereo block of samples
+            for (int i=0; i<numFrames; ++i) 
             {
                 // optional parameter smoothing
                 _freq += smoothing * (targetFreq - _freq);
                 _gain += smoothing * (targetGain - _gain);
 
-                // sine wave oscillator @ amplitude 0.2
+                // sine wave oscillator out
                 float output = !bypass * _gain * sinf(_phase);
                 out[2*i+0] = output; // Left channel
                 out[2*i+1] = output; // Right channel
@@ -64,7 +64,7 @@ class PluginState
             }
         }
     private:
-        int _sampleRate = SAMPLERATE; // sampleRate should match output stream sampleRate
+        int _sampleRate = SAMPLERATE;
         float _phase = 0.f;
         float _freq = 220.f;
         float _gain = 0.5f;

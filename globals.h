@@ -8,10 +8,10 @@
 #include "ftxui/dom/elements.hpp"
 
 // constants
-constexpr std::size_t SAMPLERATE = 48000; // should be a sampleRate supported by RTaudio and your soundcard
-constexpr std::size_t BUFFERFRAMES = 256; // number of frames per audio callback
-constexpr std::size_t RECORDDURATION = 3; // number of seconds to record
-constexpr std::size_t RECORDFRAMES = SAMPLERATE * RECORDDURATION; // number of frames to record
+constexpr std::size_t SAMPLERATE = 48000; // pick a sampleRate supported by RTaudio and your soundcard
+constexpr std::size_t BUFFERFRAMES = 256; // per audio callback
+constexpr std::size_t RECORDDURATION = 3; // in seconds
+constexpr std::size_t RECORDFRAMES = SAMPLERATE * RECORDDURATION;
 constexpr char PLUGINSOURCE[] = "plugin.h"; // source file path for plugin
 constexpr short BYTETOBITS = 8;
 constexpr short RECORDBITDEPTH = 16;
@@ -36,14 +36,16 @@ struct Globals
     std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
 };
 
-// hold function pointers and state for hot loaded data from plugin.cpp
+// function pointers and state for hot loaded data from plugin.cpp
 struct PluginModule 
 {
-    void* handle = nullptr;                 // dynamic library handle returned by dlopen()
-    void* state = nullptr;                  // pointer to DSPState instance created by DSP module
-    void* (*create)(void*);                 // function pointer: createDSP()
-    void (*destroy)(void*);                 // function pointer: destroyDSP()
-    void (*process)(void*, float*, int);    // function pointer: processAudio() + floatOut + numFrames
+    void* handle = nullptr; // dynamic library handle returned by dlopen()
+    void* state = nullptr;  // pointer to DSPState instance created by DSP module
+
+    // function pointers
+    void* (*create)(void*) = nullptr;
+    void (*destroy)(void*) = nullptr;
+    void (*process)(void*, float*, int) = nullptr;
 };
 
 struct UiParams

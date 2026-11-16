@@ -15,23 +15,23 @@
 #include "wavEncoder.h"
 #include "ui.h"
 
-static_assert (std::atomic<float>::is_always_lock_free); // check float type is lock free
+static_assert(std::atomic<float>::is_always_lock_free, "your device doesn't support atomic floats");
 
-// Globals
+// globals
 Globals globals;
-unsigned int rtBufferFrames = BUFFERFRAMES; // assign constant to mutable as RtAudio will change value if unsupported by system
-LogBuffer logBuff; // circular buffer for logging standard output
-PluginModule plugin{}; // for filling with hot loaded PluginState pointers
+unsigned int rtBufferFrames = BUFFERFRAMES; // mutable as RtAudio will change value if unsupported by system
+LogBuffer logBuff;
+PluginModule plugin{}; // fill with hot loaded PluginState pointers
 UiParams uiParams;
 
-// Get platform-specific shared library filename
+// OS detection for correct file format
 std::string sharedLibraryName(const std::string& baseName)
 {
-#if defined(_WIN32) // Windows
+#if defined(_WIN32)
     return baseName + ".dll";
-#elif defined(__APPLE__) && defined(__MACH__) // macOS
+#elif defined(__APPLE__) && defined(__MACH__)
     return "lib" + baseName + ".dylib";
-#elif defined(__linux__) // Linux
+#elif defined(__linux__)
     return "lib" + baseName + ".so";
 #else
     #error Unsupported platform
@@ -44,15 +44,15 @@ std::string sharedLibraryName(const std::string& baseName)
 bool loadPlugin(PluginModule& plugin) 
 {
     std::string pluginPath = "./build/plugins/" + sharedLibraryName("plugin");
-    // Try to open the shared library file
+    // try to open the shared library file
     void* handle = dlopen(pluginPath.c_str(), RTLD_NOW);
-    if (!handle) // null ptr check
+    if (!handle)
     {
         std::cerr << "Failed to load Plugin: " << dlerror() << "\n";
         return false;
     }
 
-    // Resolve the symbols (function names) expected from plugin.cpp
+    // resolve function names expected from plugin.cpp
         // strings and types must match what's declared in plugin.h and implemented in plugin.cpp
     auto createFn  = (void* (*)(void*))dlsym(handle, "createPlugin");
     auto destroyFn = (void (*)(void*))dlsym(handle, "destroyPlugin");
@@ -66,18 +66,13 @@ bool loadPlugin(PluginModule& plugin)
         return false;
     }
 
-    // If plugin is already loaded, free it's memory before creating a new PluginState object
-    if (plugin.destroy && plugin.state) 
-    {
-        plugin.destroy(plugin.state);
-    }
-    // Create a new PluginState instance with the new module
+    // if plugin is already loaded, free it's memory before creating a new PluginState object
+    if (plugin.destroy && plugin.state) plugin.destroy(plugin.state);
     void* newState = createFn(&uiParams);
-
-    // Unload the previous shared library (if any) before replacing it
+    // unload the previous shared library (if any) before replacing it
     if (plugin.handle) dlclose(plugin.handle);
 
-    // Store the new handles and function pointers.
+    // store the new handles and function pointers
     plugin.handle  = handle;
     plugin.state   = newState;
     plugin.create  = createFn;
@@ -89,25 +84,24 @@ bool loadPlugin(PluginModule& plugin)
 }
 
 // -------------------------------------------------------------------------
-// RtAudio callback, called by RtAudio whenever it needs more audio samples
+// RtAudio callback, called by RtAudio when it needs more samples
 // -------------------------------------------------------------------------
 int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStreamStatus, void* userData)
 {
-    if(userData) // null pointer check
+    if(userData)
     {
-        // cast userData pointer back to a PluginModule object pointer, same for globals
         PluginModule* plugin = static_cast<PluginModule*>(userData);
+        float* outFloats = static_cast<float*>(outBuffer);
 
-        // If the plugin is loaded and valid, generate samples via processAudio function in plugin.cpp
-        if (plugin->process && plugin->state) plugin->process(plugin->state, static_cast<float*>(outBuffer), numFrames);
-        // Otherwise, output silence (avoid noise on error)
-        else std::fill_n(static_cast<float*>(outBuffer), numFrames, 0.0f);
+        // if plugin is loaded and valid, generate samples
+        if (plugin->process && plugin->state) plugin->process(plugin->state, outFloats, numFrames);
+        else std::fill_n(outFloats, numFrames, 0.0f); // ouput silence
 
-        // write ouput buffer to circular buffer for extra functions
+        // write ouput to circular buffer for extra functions
         for (int i=0; i<numFrames; i++) 
         {
             int writeHead = globals.writeHead.load();
-            globals.circularOutput[writeHead] = static_cast<float*>(outBuffer)[i];
+            globals.circularOutput[writeHead] = outFloats[i];
             int wrapped = (writeHead + 1) % globals.circularOutput.size();
             globals.writeHead.store(wrapped);
         }
@@ -115,24 +109,14 @@ int callback(void* outBuffer, void*, unsigned int numFrames, double, RtAudioStre
     return 0; // exit code so RtAudio continues streaming
 }
 
-// -------------------------------------------------------------------------
-// Async function for exporting a .wav file
-// -------------------------------------------------------------------------
+// Async functions
 void wavWriteThread() { writeWav(globals, logBuff); }
-
-// -------------------------------------------------------------------------
-// Async function for realtime parameter updates & visualisers
-// -------------------------------------------------------------------------
 void uiThread() { drawUi(logBuff, globals, uiParams); }
-
-// -------------------------------------------------------------------------
-// Async function for reloading plugin code when plugin.h file is changed
-// -------------------------------------------------------------------------
 void reloadPluginThread()
 {
     // rebuild dynamic library
     system("make -C build plugin");
-    loadPlugin(plugin); // reload plugin
+    loadPlugin(plugin);
     globals.reloading.store(0); // re-enable hot-reloading
 }
 
@@ -141,14 +125,14 @@ void reloadPluginThread()
 // -----------------------------------------------------------------------------
 int main() 
 {
-    // Initial load, fill PluginModule's placeholders with data from plugin.cpp
+    // initial load, fill PluginModule's placeholders with data from plugin.cpp
     if (!loadPlugin(plugin)) 
     {
         std::cerr << "Failed initial plugin load\n";
         return 1;
     }
 
-    // Setup RtAudio output stream
+    // setup RtAudio output stream
     RtAudio dac;
     if (dac.getDeviceCount() < 1) 
     {
@@ -156,24 +140,24 @@ int main()
         return 1;
     }
 
-    // Configure output stream parameters
+    // configure output stream parameters, default device & stereo output
     RtAudio::StreamParameters streamParams;
-    streamParams.deviceId = dac.getDefaultOutputDevice(); // default output
-    streamParams.nChannels = 2;                           // stereo output
+    streamParams.deviceId = dac.getDefaultOutputDevice();
+    streamParams.nChannels = 2;
 
-    // start UI (and potentially wavWriter) in background
+    // start UI (and potentially wavWriter) on another thread
     std::thread ui(uiThread);
-    ui.detach(); // run independently
+    ui.detach();
 
-    // Open and start the audio stream
+    // start audio stream
     try
     {
         dac.openStream(&streamParams,       // output stream parameters
                        nullptr,             // no input stream
                        RTAUDIO_FLOAT32,     // sample format
                        SAMPLERATE,
-                       &rtBufferFrames,     // number of sample frames per callback
-                       callback,            // callback function name
+                       &rtBufferFrames,     // sample frames per callback
+                       callback,            // audio callback function name
                        &plugin);            // userData to pass to callback
         dac.startStream();
     }
@@ -197,15 +181,14 @@ int main()
     logBuff.setNewLine("Audio stream running");
     logBuff.setNewLine("Edit plugin.h to hear changes live");
 
-    // if plugin changes, reload in place without restarting program
     int firstTime = 0;
     std::filesystem::file_time_type lastWriteTime;
 
-    // Periodically check plugin.h file for changes
+    // periodically check plugin.h file for changes
     while (true) 
     {
         auto currentTime = std::filesystem::last_write_time(PLUGINSOURCE);
-        
+
         // don't trigger rebuild on firstLoop
         if (!firstTime) 
         {
@@ -213,7 +196,7 @@ int main()
             firstTime = 1;
         }
 
-        // start a new thread when file edited & not currently reloading
+        // when file edited & not currently reloading, reload on new thread
         if ((currentTime != lastWriteTime) && !globals.reloading.load())
         {
             // prevent double reloads
@@ -222,10 +205,11 @@ int main()
 
             logBuff.setNewLine("RELOADING PLUGIN");
             std::thread reload(reloadPluginThread);
-            reload.detach(); // don't block main thread whilst reloading
+            reload.detach();
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-    // Safety clean up (usually unreachable)
+
+    // clean up (usually unreachable)
     dac.closeStream();
 }

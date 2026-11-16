@@ -118,7 +118,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         [&](ftxui::Event event) 
         {
             bool handled = toggles->OnEvent(event);
-            // If the event changed something, update shared atomic variables
+            // if the event changed something, update shared atomic variables
             if (handled) { updateAtomicsCheckbox(toggle1, toggle2, toggle3, toggle4); }
             return handled;
         }
@@ -134,7 +134,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         Button("Record WAV", [&] 
         { 
             std::thread wavWrite(wavWriteThread);
-            wavWrite.detach(); // run independently
+            wavWrite.detach();
         }, ButtonOption::Ascii()) | xflex_grow,
         Button("Press Me", [&] { logTest(logBuff); }, ButtonOption::Ascii()) | xflex_grow,
         Button("Close", [&] { screen.Exit(); }, ButtonOption::Ascii()) | xflex_grow,
@@ -175,7 +175,7 @@ void drawUi(LogBuffer& logBuff, Globals& globals, UiParams& uiParams)
         [&](ftxui::Event event) 
         {
             bool handled = sliders->OnEvent(event);
-            // If the event changed something, update shared atomic variables
+            // if the event changed something, update shared atomic variables
             if (handled) { updateAtomicsSlider(sliderVal1, sliderVal2); }
             return handled;
         }

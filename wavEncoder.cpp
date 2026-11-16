@@ -10,7 +10,7 @@
 
 #include "globals.h"
 
-// for writing a specific number of bytes independent of system's int implementation
+// write a specific number of bytes independent of system's int implementation
 void writeBytes(std::ofstream& file, int value, int size) 
 {
     file.write(reinterpret_cast<const char*> (&value), size);
@@ -46,7 +46,7 @@ void writeWav(Globals& globals, LogBuffer& logBuff) {
     // SAMPLE WRITING
         // scale float samples to unsigned int for writing to .wav file
     auto maxAmplitude = pow(2, RECORDBITDEPTH  - 1) - 1;
-        // circular buffer readHead, 1 buffer ahead of writeHead
+        // circular buffer readHead. 1 buffer ahead of writeHead
     std::size_t readHead = (globals.writeHead.load() + BUFFERFRAMES) % globals.circularOutput.size();
     for(int i = 0; i < RECORDFRAMES; i++ ) 
     {
