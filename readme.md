@@ -33,7 +33,7 @@
 1. You’ll need an existing C++ build environment, if you’re programming in C++ you probably already have these
 	- GCC / Clang
 	- CMake
-	- Make
+	- Make / Ninja
 2. Included submodules
     - RtAudio for interfacing with your soundcard
     - FTXUI for the terminal UI

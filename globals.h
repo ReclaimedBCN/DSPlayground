@@ -4,6 +4,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <vector>
 #include "ftxui/dom/elements.hpp"
 
@@ -31,7 +32,6 @@ constexpr float INV60 = 1.f / 60;
 struct Globals
 {
     std::atomic<int> writeHead = 0; // circular buffer write head
-    std::atomic<bool> reloading = 0; // flag to prevent double reloads
     std::vector<float> circularOutput = std::vector<float>(RECORDFRAMES + BUFFERFRAMES, 0.f); // circular buffer for output frames, sized with 1 extra buffer
     std::vector<float> wavWriteFloats = std::vector<float>(RECORDFRAMES, 0.f);
 };
@@ -62,40 +62,49 @@ class LogBuffer
     public:
         void setNewLine(std::string text)
         {
-            _logBuffer[_writeHead] = text; // add to circular buffer
-            _writeHead = (_writeHead + 1) & _size - 1; // increment & wrap
+            const std::lock_guard lock(_mutex);
+            _logBuffer[_writeHead] = text;
+            _writeHead = (_writeHead + 1) & (_size - 1);
         }
-        std::string getLine(int index) 
+        std::string getLine(int index)
         {
-            if (index >= 0 && index <= _size) return _logBuffer[index]; 
-            else return "";
+            const std::lock_guard lock(_mutex);
+            if (index >= 0 && index < _size) return _logBuffer[index];
+            else return {};
         }
-        int getWriteHead() { return _writeHead; }
+        int getWriteHead()
+        {
+            const std::lock_guard lock(_mutex);
+            return _writeHead;
+        }
         int getSize() { return _size; }
         ftxui::Element getMiniLog()
         {
+            const std::lock_guard lock(_mutex);
             int size = 8;
             std::string logOut = ""; // clear
-            for (int i=1; i<size; i++) 
+            for (int i=1; i<size; i++)
             {
                 int jump = size - i; // start from back of queue
-                int readHead = (_writeHead - jump) & size - 1; // wrap
-                logOut += this->getLine(readHead) + "\n"; // output all lines, oldest --> most recent
+                int readHead = (_writeHead - jump) & (_size - 1); // wrap
+                logOut += _logBuffer[readHead] + '\n'; // output all lines, oldest --> most recent 
             }
             return ftxui::paragraph(logOut);
         }
         ftxui::Element getFullLog()
         {
+            const std::lock_guard lock(_mutex);
             std::string logOut = ""; // clear
-            for (int i=1; i<_size; i++) 
+            for (int i=1; i<_size; i++)
             {
                 int jump = _size - i; // start from back of queue
-                int readHead = (_writeHead - jump) & _size - 1; // wrap
-                logOut += this->getLine(readHead) + "\n"; // output all lines, oldest --> most recent 
+                int readHead = (_writeHead - jump) & (_size - 1); // wrap
+                logOut += _logBuffer[readHead] + '\n'; // output all lines, oldest --> most recent
             }
             return ftxui::paragraph(logOut);
         }
     private:
+        std::mutex _mutex;
         int _size = 64;
         int _writeHead = 0;
         std::vector<std::string> _logBuffer = std::vector<std::string>(_size);

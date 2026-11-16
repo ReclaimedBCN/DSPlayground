@@ -13,9 +13,9 @@
 class PluginState
 {
     public:
-        PluginState(void* uiParamsPoint) 
+        PluginState(void* uiParamsPtr) 
         { 
-            _uiParams = static_cast<UiParams*>(uiParamsPoint); 
+            _uiParams = static_cast<UiParams*>(uiParamsPtr); 
         }
 
         void process(float* out, int numFrames)

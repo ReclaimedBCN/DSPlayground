@@ -31,11 +31,13 @@ set_target_properties(plugin PROPERTIES
 )
 
 # -- Libraries ---------------------
-target_include_directories(${projectName} PRIVATE
+target_link_libraries(${projectName} PRIVATE ${CMAKE_DL_LIBS})
+
+target_include_directories(${projectName} SYSTEM PRIVATE
     external/rtaudio
     external/FTXUI/include
 )
-target_include_directories(plugin PRIVATE
+target_include_directories(plugin SYSTEM PRIVATE
     external/rtaudio
     external/FTXUI/include
 )

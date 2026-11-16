@@ -2,7 +2,7 @@
 // Use of this source code is governed by the license found in the LICENSE file.
 
 // ----------------------------------------------------------------------------------------------
-// Hot-reloadable DSP Plugin. Rebuild with command: make plugin
+// Hot-reloadable DSP plugin. Rebuild with `cmake --build build --target plugin`
 // ----------------------------------------------------------------------------------------------
 #include "plugin.h"
 
